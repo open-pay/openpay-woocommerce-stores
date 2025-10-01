@@ -7,7 +7,7 @@ if (!class_exists('Openpay')) {
 }
 
 if (!class_exists('OpenpayStoresUtils')) {
-    require_once("utils/OpenpayStoresUtils.php");
+    require_once("Includes/OpenpayStoresUtils.php");
 }
 
 /*
@@ -31,14 +31,14 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $transactionErrorMessage = null;
     protected $currencies;
     protected $logger = null;
-    protected $country = '';
+    public $country = '';
     protected $iva = 0;
     protected $test_merchant_id;
     protected $test_private_key;
     protected $live_merchant_id;
     protected $live_private_key;
     protected $deadline;
-    protected $merchant_id;
+    public $merchant_id;
     protected $private_key;
     protected $pdf_url_base;
     protected $images_dir;
