@@ -1,14 +1,9 @@
 <?php
+namespace OpenpayStores;
 
 use OpenpayStores\Includes\OpenpayStoresUtils;
-
-if (!class_exists('Openpay')) {
-    require_once("lib/openpay/Openpay.php");
-}
-
-if (!class_exists('OpenpayStoresUtils')) {
-    require_once("Includes/OpenpayStoresUtils.php");
-}
+use WC_Payment_Gateway;
+use Openpay;
 
 /*
   Title:	Openpay Payment extension for WooCommerce
@@ -31,14 +26,14 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $transactionErrorMessage = null;
     protected $currencies;
     protected $logger = null;
-    public $country = '';
+    protected $country = '';
     protected $iva = 0;
     protected $test_merchant_id;
     protected $test_private_key;
     protected $live_merchant_id;
     protected $live_private_key;
     protected $deadline;
-    public $merchant_id;
+    protected $merchant_id;
     protected $private_key;
     protected $pdf_url_base;
     protected $images_dir;
@@ -54,7 +49,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->logger = wc_get_logger();
 
         $this->country = $this->settings['country'];
-        $this->currencies = UtilsStores::getCurrencies($this->country);        
+        $this->currencies = OpenpayStoresUtils::getCurrencies($this->country);        
         $this->iva = $this->country == 'CO' ? $this->settings['iva'] : 0;
         $this->description = '';
         $this->is_sandbox = strcmp($this->settings['sandbox'], 'yes') == 0;
@@ -67,6 +62,14 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->private_key = $this->is_sandbox ? $this->test_private_key : $this->live_private_key;
         $this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
 
+    }
+
+    public function get_merchant_id() {
+        return $this->merchant_id;
+    }
+
+    public function get_country() {
+        return $this->country;
     }
 
     public function init_form_fields() {                
@@ -143,7 +146,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function payment_fields() {}
     protected function processOpenpayCharge() {}
 
-    public function process_payment() {}
+    public function process_payment($order_id) {}
     public function createOpenpayCharge() {}
     public function getOpenpayCustomer() {}
     public function createOpenpayCustomer() {}
