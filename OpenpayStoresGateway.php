@@ -139,10 +139,10 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
     public function openpay_stores_admin_enqueue() {}
     function payment_scripts(){}
-    public function process_admin_options() {}
+    //public function process_admin_options() {}
     public function webhook_handler() {}
 
-    public function admin_options() {}
+    //public function admin_options() {}
     public function payment_fields() {}
     protected function processOpenpayCharge() {}
 
