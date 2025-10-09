@@ -2,7 +2,7 @@
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 
-final class WC_Openpay_Gateway_Blocks_Support extends AbstractPaymentMethodType {
+final class OpenpayStoresGateway_Blocks_Support extends AbstractPaymentMethodType {
     
     protected $name = 'openpay_stores';
 
