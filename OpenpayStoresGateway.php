@@ -23,7 +23,7 @@ if (!class_exists('OpenpayStoresUtils')) {
 class OpenpayStoresGateway extends WC_Payment_Gateway
 {
     const VERSION_NUMBER_ADMIN_SCRIPT = '1.0.0';
-    
+
     protected $GATEWAY_NAME = "Openpay Stores";
     protected $is_sandbox = true;
     protected $order = null;
@@ -54,38 +54,39 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->logger = wc_get_logger();
 
         $this->country = $this->settings['country'];
-        $this->currencies = UtilsStores::getCurrencies($this->country);        
+        //$this->currencies = UtilsStores::getCurrencies($this->country);
         $this->iva = $this->country == 'CO' ? $this->settings['iva'] : 0;
         $this->description = '';
         $this->is_sandbox = strcmp($this->settings['sandbox'], 'yes') == 0;
         $this->test_merchant_id = $this->settings['test_merchant_id'];
         $this->test_private_key = $this->settings['test_private_key'];
         $this->live_merchant_id = $this->settings['live_merchant_id'];
-        $this->live_private_key = $this->settings['live_private_key'];        
+        $this->live_private_key = $this->settings['live_private_key'];
         $this->deadline = $this->settings['deadline'];
-        $this->merchant_id = $this->is_sandbox ? $this->test_merchant_id : $this->live_merchant_id;        
+        $this->merchant_id = $this->is_sandbox ? $this->test_merchant_id : $this->live_merchant_id;
         $this->private_key = $this->is_sandbox ? $this->test_private_key : $this->live_private_key;
-        $this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
+        //$this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
 
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
     }
 
-    public function init_form_fields() {                
+    public function init_form_fields() {
         $this->form_fields = array(
             'enabled' => array(
                 'type' => 'checkbox',
                 'title' => __('Habilitar módulo', 'woothemes'),
                 'label' => __('Habilitar', 'woothemes'),
                 'default' => 'yes'
-            ),            
+            ),
             'sandbox' => array(
                 'type' => 'checkbox',
                 'title' => __('Modo de pruebas', 'woothemes'),
-                'label' => __('Habilitar', 'woothemes'),                
+                'label' => __('Habilitar', 'woothemes'),
                 'default' => 'no'
             ),
             'country' => array(
                 'type' => 'select',
-                'title' => __('País', 'woothemes'),                             
+                'title' => __('País', 'woothemes'),
                 'default' => 'MX',
                 'options' => array(
                     'MX' => 'México',
@@ -104,7 +105,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'title' => __('Llave secreta de pruebas', 'woothemes'),
                 'description' => __('Obten tus llaves de prueba de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
-            ),            
+            ),
             'live_merchant_id' => array(
                 'type' => 'text',
                 'title' => __('ID de comercio de producción', 'woothemes'),
@@ -116,7 +117,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'title' => __('Llave secreta de producción', 'woothemes'),
                 'description' => __('Obten tus llaves de producción de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
-            ),            
+            ),
             'deadline' => array(
                 'type' => 'number',
                 'required' => true,
@@ -127,33 +128,10 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
             'iva' => array(
                 'type' => 'number',
                 'required' => true,
-                'title' => __('IVA', 'woothemes'),                
+                'title' => __('IVA', 'woothemes'),
                 'default' => '0',
-                'id' => 'openpay_show_iva',                
+                'id' => 'openpay_show_iva',
             ),
         );
     }
-
-    public function openpay_stores_admin_enqueue() {}
-    function payment_scripts(){}
-    public function process_admin_options() {}
-    public function webhook_handler() {}
-
-    public function admin_options() {}
-    public function payment_fields() {}
-    protected function processOpenpayCharge() {}
-
-    public function process_payment() {}
-    public function createOpenpayCharge() {}
-    public function getOpenpayCustomer() {}
-    public function createOpenpayCustomer() {}
-    private function formatAddress() {}
-    public function hasAddress() {}
-    public function createWebhook() {}
-
-    public function error() {}
-    public function errorWebhook() {}
-    public function validateCurrency() {}
-    public function isNullOrEmptyString() {}
-    public function getOpenpayInstance() {}
 }
