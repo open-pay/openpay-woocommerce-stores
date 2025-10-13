@@ -1,14 +1,19 @@
 <?php
+
 namespace OpenpayStores;
 
+use Openpay\Data\OpenpayApi;
+use OpenpayStores\Includes\OpenpayClient;
 use OpenpayStores\Includes\OpenpayStoresUtils;
+use OpenpayStores\Services\PaymentSettings\OpenpayPaymentSettingsValidation;
 use WC_Payment_Gateway;
-use Openpay;
+use WC_Admin_Settings;
+use OpenpayStores\Services\OpenpayWebhookService;
 
 /*
-  Title:	Openpay Payment extension for WooCommerce
-  Author:	Openpay
-  URL:		http://www.openpay.mx
+  Title:    Openpay Payment extension for WooCommerce
+  Author:   Openpay
+  URL:      http://www.openpay.mx
   License: GNU General Public License v3.0
   License URI: http://www.gnu.org/licenses/gpl-3.0.html
     WC requires at least: 3.0
@@ -18,7 +23,7 @@ use Openpay;
 class OpenpayStoresGateway extends WC_Payment_Gateway
 {
     const VERSION_NUMBER_ADMIN_SCRIPT = '1.0.0';
-    
+
     protected $GATEWAY_NAME = "Openpay Stores";
     protected $is_sandbox = true;
     protected $order = null;
@@ -39,7 +44,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $images_dir;
 
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->id = 'openpay_stores';
         $this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
@@ -48,47 +54,53 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->init_settings();
         $this->logger = wc_get_logger();
 
-        $this->country = $this->settings['country'];
-        $this->currencies = OpenpayStoresUtils::getCurrencies($this->country);        
-        $this->iva = $this->country == 'CO' ? $this->settings['iva'] : 0;
-        $this->description = '';
-        $this->is_sandbox = strcmp($this->settings['sandbox'], 'yes') == 0;
-        $this->test_merchant_id = $this->settings['test_merchant_id'];
-        $this->test_private_key = $this->settings['test_private_key'];
-        $this->live_merchant_id = $this->settings['live_merchant_id'];
-        $this->live_private_key = $this->settings['live_private_key'];        
-        $this->deadline = $this->settings['deadline'];
-        $this->merchant_id = $this->is_sandbox ? $this->test_merchant_id : $this->live_merchant_id;        
-        $this->private_key = $this->is_sandbox ? $this->test_private_key : $this->live_private_key;
-        $this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
-
+        // Método para establecer las propiedades según los ajustes actuales
+        $this->setup_properties();
+        // Engancha el método para guardar las opciones cuando el admin hace clic en "Guardar cambios"
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ));
     }
 
-    public function get_merchant_id() {
+    private function setup_properties()
+    {
+        $this->country = $this->get_option('country');
+        $this->is_sandbox = 'yes' === $this->get_option('sandbox');
+        $this->merchant_id = $this->is_sandbox ? $this->get_option('test_merchant_id') : $this->get_option('live_merchant_id');
+        $this->private_key = $this->is_sandbox ? $this->get_option('test_private_key') : $this->get_option('live_private_key');
+
+        // Mueve aquí el resto de las propiedades que dependen de los ajustes
+        $this->currencies = OpenpayStoresUtils::getCurrencies($this->country);
+        $this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
+        $this->deadline = $this->get_option('deadline');
+        $this->iva = $this->country == 'CO' ? $this->get_option('iva') : 0;
+    }
+    public function get_merchant_id()
+    {
         return $this->merchant_id;
     }
 
-    public function get_country() {
+    public function get_country()
+    {
         return $this->country;
     }
 
-    public function init_form_fields() {                
+    public function init_form_fields()
+    {
         $this->form_fields = array(
             'enabled' => array(
                 'type' => 'checkbox',
                 'title' => __('Habilitar módulo', 'woothemes'),
                 'label' => __('Habilitar', 'woothemes'),
                 'default' => 'yes'
-            ),            
+            ),
             'sandbox' => array(
                 'type' => 'checkbox',
                 'title' => __('Modo de pruebas', 'woothemes'),
-                'label' => __('Habilitar', 'woothemes'),                
+                'label' => __('Habilitar', 'woothemes'),
                 'default' => 'no'
             ),
             'country' => array(
                 'type' => 'select',
-                'title' => __('País', 'woothemes'),                             
+                'title' => __('País', 'woothemes'),
                 'default' => 'MX',
                 'options' => array(
                     'MX' => 'México',
@@ -107,7 +119,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'title' => __('Llave secreta de pruebas', 'woothemes'),
                 'description' => __('Obten tus llaves de prueba de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
-            ),            
+            ),
             'live_merchant_id' => array(
                 'type' => 'text',
                 'title' => __('ID de comercio de producción', 'woothemes'),
@@ -119,7 +131,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'title' => __('Llave secreta de producción', 'woothemes'),
                 'description' => __('Obten tus llaves de producción de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
-            ),            
+            ),
             'deadline' => array(
                 'type' => 'number',
                 'required' => true,
@@ -130,33 +142,176 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
             'iva' => array(
                 'type' => 'number',
                 'required' => true,
-                'title' => __('IVA', 'woothemes'),                
+                'title' => __('IVA', 'woothemes'),
                 'default' => '0',
-                'id' => 'openpay_show_iva',                
+                'id' => 'openpay_show_iva',
             ),
         );
     }
 
-    public function openpay_stores_admin_enqueue() {}
-    function payment_scripts(){}
-    public function process_admin_options() {}
-    public function webhook_handler() {}
+    public function openpay_stores_admin_enqueue()
+    {
+    }
+    function payment_scripts()
+    {
+    }
+    public function process_admin_options()
+    {
+        // Obtenemos los datos enviados por el usuario.
+        $post_data = $this->get_post_data(); // get_post_data() es un método de WC_Payment_Gateway que ya te da los datos del POST.
 
-    public function admin_options() {}
-    public function payment_fields() {}
-    protected function processOpenpayCharge() {}
+        $logger = wc_get_logger();
+        $logger->info('DATOS ENVIADOS DESDE GATEWAY: ' . json_encode($post_data));
 
-    public function process_payment($order_id) {}
-    public function createOpenpayCharge() {}
-    public function getOpenpayCustomer() {}
-    public function createOpenpayCustomer() {}
-    private function formatAddress() {}
-    public function hasAddress() {}
-    public function createWebhook() {}
+        // Creamos una instancia de nuestro validador.
+        $validator = new OpenpayPaymentSettingsValidation($logger, $this->id);
 
-    public function error() {}
-    public function errorWebhook() {}
-    public function validateCurrency() {}
-    public function isNullOrEmptyString() {}
-    public function getOpenpayInstance() {}
+        // Ejecutamos la validación y capturamos la instancia de Openpay (o null).
+        $openpay_instance = $validator->validateOpenpayCredentials($post_data);
+
+        //$credentials_are_valid = $validator->validateOpenpayCredentials($post_data);
+        $currency_is_valid = $validator->validateCurrency($this->currencies);
+
+        // Comprobamos si todas las validaciones pasaron.
+        if ($openpay_instance && $currency_is_valid) {
+            // Si todo está bien, llamamos al método padre para que guarde los nuevos datos.
+            parent::process_admin_options();
+
+            // Forzamos la recarga de los ajustes desde la base de datos al objeto actual.
+            $this->init_settings();
+
+            // ¡Refrescamos las propiedades del objeto con los nuevos valores!
+            $this->setup_properties();
+
+            // Usamos un try-catch por si la API de Openpay falla.
+            try {
+                // Llamamos al método que creamos para el webhook.
+                $this->ensureWebhookExists($openpay_instance);
+
+                // Opcional: Añadir un mensaje de éxito para el webhook (en verde).
+                \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay verificado y configurado correctamente.', 'openpay_stores'));
+            } catch (\Exception $e) {
+                // Si la creación del webhook falla, mostramos un error, pero los ajustes ya se guardaron.
+                \WC_Admin_Settings::add_error('Ajustes guardados, pero hubo un error al configurar el webhook: ' . esc_html($e->getMessage()));
+                return false;
+            }
+
+            return true;
+        }
+
+        // Si alguna validación falló, los errores ya se mostraron y no guardamos nada.
+        return false;
+    }
+
+    /**
+     * Orquesta la creación o verificación del webhook.
+     */
+    private function ensureWebhookExists(OpenpayApi $openpayApi)
+    {
+        
+        // Creamos nuestro servicio, inyectando la dependencia.
+        $webhookService = new OpenpayWebhookService($openpayApi);
+
+        // Construimos la URL del webhook usando una función de WordPress.
+        $webhook_url = site_url('/wc-api/Openpay_Stores', 'https');
+
+        // Usamos el servicio para buscar el webhook.
+        $existingWebhook = $webhookService->findWebhookByUrl($webhook_url);
+
+        if ($existingWebhook) {
+            // Si ya existe, guardamos su ID y no hacemos nada más.
+            update_option('woocommerce_openpay_stores_webhook_id', $existingWebhook->id);
+            $this->logger->info('Webhook ya existente encontrado: ' . $existingWebhook->id);
+            return;
+        }
+
+        // Si no existe, usamos el servicio para crearlo.
+        $newWebhook = $webhookService->createWebhook($webhook_url);
+
+        // Guardamos el ID del nuevo webhook como una opción del sitio.
+        // Es mejor práctica guardarlo en 'options' que en 'user_meta'.
+        update_option('woocommerce_openpay_stores_webhook_id', $newWebhook->id);
+        $this->logger->info('Nuevo webhook creado exitosamente: ' . $newWebhook->id);
+    }
+    public function webhook_handler()
+    {
+    }
+
+    public function admin_options()
+    {
+        include_once('templates/admin.php');
+    }
+
+
+    public function payment_fields()
+    {
+    }
+    protected function processOpenpayCharge()
+    {
+    }
+
+    public function process_payment($order_id)
+    {
+    }
+    public function createOpenpayCharge()
+    {
+    }
+    public function getOpenpayCustomer()
+    {
+    }
+    public function createOpenpayCustomer()
+    {
+    }
+    private function formatAddress()
+    {
+    }
+    public function hasAddress()
+    {
+    }
+    public function createWebhook()
+    {
+    }
+
+    public function error()
+    {
+    }
+    public function errorWebhook()
+    {
+    }
+    public function validateCurrency()
+    {
+        return in_array(get_woocommerce_currency(), $this->currencies);
+    }
+    public function isNullOrEmptyString()
+    {
+    }
+
+    /**
+     * Implementación de getOpenpayInstance() que usa el nuevo servicio.
+     *
+     * @return Openpay|null
+     */
+    public function getOpenpayInstance()
+    {
+
+        // Registramos en el log los valores exactos que se usarán para la conexión.
+    $this->logger->info(
+        'Intentando crear instancia de Openpay con los siguientes datos: ' .
+        'ID=' . $this->merchant_id . ', ' .
+        'Key=' . substr($this->private_key, 0, 8) . '... (ofuscado), ' . // Ofuscamos la llave por seguridad
+        'Country=' . $this->country . ', ' .
+        'IsSandbox=' . ($this->is_sandbox ? 'true' : 'false')
+    );
+        if (empty($this->merchant_id) || empty($this->private_key)) {
+            return null;
+        }
+
+        // Llama al método estático de nuestra clase ayudante
+        return OpenpayClient::getInstance(
+            $this->merchant_id,
+            $this->private_key,
+            $this->country,
+            $this->is_sandbox
+        );
+    }
 }

@@ -26,4 +26,22 @@ class OpenpayStoresUtils{
         $pdfBase = ($isSandbox) ? $sandbox : $production;
         return $pdfBase;   
     }
+
+    public static function getCountryName($countryCode) {
+        switch ($countryCode) {
+            case 'MX':
+                return 'Mexico';
+            case 'CO':
+                return 'Colombia';
+            case 'PE':
+                return 'Peru';
+            default:
+                break;
+        }
+    }
+
+    public static function getMessageError($countryName, $currency) {  
+        $format = 'Openpay Stores Plugin %s is only available for %s currency.';
+        return sprintf($format, $countryName, $currency);
+    }
 }
