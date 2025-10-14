@@ -15,8 +15,8 @@
 <?php if(!$this->validateCurrency()): ?>
     <div class="inline error">
         <?php
-            $countryName = UtilsStores::getCountryName($this->country);
-            $message = UtilsStores::getMessageError($countryName, $this->currencies[0]);
+            //$countryName = UtilsStores::getCountryName($this->country);
+            //$message = UtilsStores::getMessageError($countryName, $this->currencies[0]);
             echo $message;
         ?>
     </div>
