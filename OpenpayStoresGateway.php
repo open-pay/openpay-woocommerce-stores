@@ -1,14 +1,9 @@
 <?php
+namespace OpenpayStores;
 
 use OpenpayStores\Includes\OpenpayStoresUtils;
-
-if (!class_exists('Openpay')) {
-    require_once("lib/openpay/Openpay.php");
-}
-
-if (!class_exists('OpenpayStoresUtils')) {
-    require_once("Includes/OpenpayStoresUtils.php");
-}
+use WC_Payment_Gateway;
+use Openpay;
 
 /*
   Title:	Openpay Payment extension for WooCommerce
@@ -31,20 +26,21 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $transactionErrorMessage = null;
     protected $currencies;
     protected $logger = null;
-    public $country = '';
+    protected $country = '';
     protected $iva = 0;
     protected $test_merchant_id;
     protected $test_private_key;
     protected $live_merchant_id;
     protected $live_private_key;
     protected $deadline;
-    public $merchant_id;
+    protected $merchant_id;
     protected $private_key;
     protected $pdf_url_base;
     protected $images_dir;
 
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->id = 'openpay_stores';
         $this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
@@ -54,7 +50,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->logger = wc_get_logger();
 
         $this->country = $this->settings['country'];
-        //$this->currencies = UtilsStores::getCurrencies($this->country);
+
+        $this->currencies = OpenpayStoresUtils::getCurrencies($this->country);
         $this->iva = $this->country == 'CO' ? $this->settings['iva'] : 0;
         $this->description = '';
         $this->is_sandbox = strcmp($this->settings['sandbox'], 'yes') == 0;
@@ -70,7 +67,18 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
     }
 
-    public function init_form_fields() {
+    public function get_merchant_id()
+    {
+        return $this->merchant_id;
+    }
+
+    public function get_country()
+    {
+        return $this->country;
+    }
+
+    public function init_form_fields()
+    {
         $this->form_fields = array(
             'enabled' => array(
                 'type' => 'checkbox',
@@ -134,4 +142,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
             ),
         );
     }
+
 }
+

@@ -1,0 +1,29 @@
+{
+    "name": "openpay/woocommerce-stores",
+    "description": "Stores payment integration for woocommerce",
+    "version": "3.0.1",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "yoast/phpunit-polyfills": "^2.0",
+        "squizlabs/php_codesniffer": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "OpenpayStores\\": "./"
+        }
+    },
+    "authors": [
+        {
+            "name": "Openpay",
+            "homepage": "https://documents.openpay.mx/docs/woocommerce.html",
+            "email": "soporte@openpay.mx"
+        },
+        {
+            "name": "Openpay",
+            "homepage": "https://openpay.mx",
+            "email": "plugins@openpay.mx"
+        }
+    ],
+    "config": {
+    }
+}
