@@ -1,6 +1,6 @@
 <?php
 
- /**
+/**
  * Plugin Name: Openpay Stores Plugin
  * Plugin URI: http://www.openpay.mx/docs/plugins/woocommerce.html
  * Description: Provides a cash payment method with Openpay for WooCommerce.
@@ -19,30 +19,46 @@
  * Openpay Docs: http://www.openpay.mx/docs/
  */
 
-function OpenpayStoresGateway_init_your_gateway() {
+// Evita el acceso directo al archivo.
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// ***** PASO CLAVE: INCLUIR EL AUTOLOADER DE COMPOSER *****
+// Esto le da a WordPress acceso a todas tus clases con namespace.
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Importa tu clase principal para usar un nombre corto.
+use OpenpayStores\OpenpayStoresGateway;
+
+function OpenpayStoresGateway_init_your_gateway()
+{
     if (class_exists('WC_Payment_Gateway')) {
         include_once('OpenpayStoresGateway.php');
     }
 }
 
-function OpenpayStoresGateway_add_gateway($methods) {
+function OpenpayStoresGateway_add_gateway($methods)
+{
     array_push($methods, 'OpenpayStoresGateway');
     return $methods;
 }
 
-function OpenpayStoresGateway_settings_link ( $links ) {
-    $settings_link = '<a href="' . admin_url('admin.php?page=wc-settings&tab=checkout&section=openpay_stores' ). '">' . __('Ajustes', 'openpay_stores') . '</a>';
-    array_push( $links, $settings_link );
+function OpenpayStoresGateway_settings_link($links)
+{
+    $settings_link = '<a href="' . admin_url('admin.php?page=wc-settings&tab=checkout&section=openpay_stores') . '">' . __('Ajustes', 'openpay_stores') . '</a>';
+    array_push($links, $settings_link);
     return $links;
 }
 
-function openpay_blocks_support() {
+function openpay_blocks_support()
+{
     require_once __DIR__ . '/Includes/class-wc-openpay-gateway-blocks-support.php';
 
     add_action(
         'woocommerce_blocks_payment_method_type_registration',
-        function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
-            $payment_method_registry->register( new OpenpayStoresGateway_Blocks_Support );
+        function (Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry) {
+            $payment_method_registry->register(new OpenpayStoresGateway_Blocks_Support);
         }
     );
 }
@@ -50,16 +66,17 @@ function openpay_blocks_support() {
 /*
  * This action registers WC_Openpay_Gateway_Blocks_Support class as a WC Payment Block
  */
-add_action( 'woocommerce_blocks_loaded', 'openpay_blocks_support' );
+add_action('woocommerce_blocks_loaded', 'openpay_blocks_support');
 
 add_filter('woocommerce_payment_gateways', 'OpenpayStoresGateway_add_gateway');
 
-add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), 'OpenpayStoresGateway_settings_link' );
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'OpenpayStoresGateway_settings_link');
 
 add_action('plugins_loaded', 'OpenpayStoresGateway_init_your_gateway', 0);
 
-add_action( 'before_woocommerce_init', function() {
-    if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+add_action('before_woocommerce_init', function () {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
     }
-} );
+});
+
