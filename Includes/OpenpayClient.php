@@ -1,10 +1,6 @@
 <?php
 namespace OpenpayStores\Includes;
 
-/**if (!class_exists('Openpay\Data\Openpay')) {
-    require_once(dirname(__FILE__) . '/../lib/openpay/Openpay.php');
-}*/
-
 use Openpay\Data\Openpay;
 use Openpay\Data\OpenpayApi;
 
@@ -29,8 +25,7 @@ class OpenpayClient {
     }
 
     private static function getClientIp() {
-        //$logger = wc_get_logger();
-        //$logger->info('getClientIp'); 
+        
         // Recogemos la IP de la cabecera de la conexión
         if (!empty($_SERVER['HTTP_CLIENT_IP']))   
         {

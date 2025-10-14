@@ -11,6 +11,7 @@ class OpenpayPaymentSettingsValidation {
 
     private $logger;
     private $gateway_id;
+    private $openpayClientClass;
 
     /**
      * El constructor ahora requiere el logger y el ID de la pasarela.
@@ -26,7 +27,7 @@ class OpenpayPaymentSettingsValidation {
      * @param array $settings Los ajustes enviados desde el formulario.
      * @return bool True si las credenciales son válidas, false en caso contrario.
      */
-    public function validateOpenpayCredentials(array $settings): ?OpenpayApi {
+    public function validateOpenpayCredentials(array $settings) {
         $this->logger->info('Datos recibidos para validación: ' . json_encode($settings));
 
         $is_sandbox = ! empty($settings['woocommerce_' . $this->gateway_id . '_sandbox']);
@@ -49,7 +50,7 @@ class OpenpayPaymentSettingsValidation {
         }
 
         try {
-            $openpay = OpenpayClient::getInstance($merchant_id, $private_key, $country, $is_sandbox);
+            $openpay = $this->createOpenpayApiInstance($merchant_id, $private_key, $country, $is_sandbox);
             $webhooks = $openpay->webhooks->getList(['limit' => 1]); // Llamada de prueba a la API
             $this->logger->info('Credenciales validadas exitosamente para el modo ' . $mode);
             $this->logger->info('Respuesta de validación de credenciales (Webhooks): ' . json_encode($webhooks));
@@ -61,6 +62,14 @@ class OpenpayPaymentSettingsValidation {
             $this->logger->error('Fallo en la validación de API: ' . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Envuelve la llamada estática para que podamos sobrescribirla en las pruebas.
+     * @return \Openpay\Data\OpenpayApi
+     */
+    protected function createOpenpayApiInstance(string $merchant_id, string $private_key, string $country, bool $is_sandbox): OpenpayApi {
+        return OpenpayClient::getInstance($merchant_id, $private_key, $country, $is_sandbox);
     }
 
     /**

@@ -286,32 +286,4 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     {
     }
 
-    /**
-     * Implementación de getOpenpayInstance() que usa el nuevo servicio.
-     *
-     * @return Openpay|null
-     */
-    public function getOpenpayInstance()
-    {
-
-        // Registramos en el log los valores exactos que se usarán para la conexión.
-    $this->logger->info(
-        'Intentando crear instancia de Openpay con los siguientes datos: ' .
-        'ID=' . $this->merchant_id . ', ' .
-        'Key=' . substr($this->private_key, 0, 8) . '... (ofuscado), ' . // Ofuscamos la llave por seguridad
-        'Country=' . $this->country . ', ' .
-        'IsSandbox=' . ($this->is_sandbox ? 'true' : 'false')
-    );
-        if (empty($this->merchant_id) || empty($this->private_key)) {
-            return null;
-        }
-
-        // Llama al método estático de nuestra clase ayudante
-        return OpenpayClient::getInstance(
-            $this->merchant_id,
-            $this->private_key,
-            $this->country,
-            $this->is_sandbox
-        );
-    }
 }
