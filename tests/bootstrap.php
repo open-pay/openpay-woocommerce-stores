@@ -3,6 +3,9 @@
  * PHPUnit bootstrap file.
  */
 
+// Esto da acceso a todas las librerías en la carpeta /vendor
+require_once dirname( __DIR__ ) . '/vendor/autoload.php';
+
 $_tests_dir = '/tmp/wordpress-tests-lib';
 
 // Carga las funciones de prueba de WordPress.
@@ -23,7 +26,7 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_woocommerce' );
  */
 function _manually_load_plugin() {
     // Asegúrate de que este es el nombre correcto de tu archivo principal.
-    require dirname( __DIR__ ) . '/OpenpayStoresGateway.php';
+    require dirname( __DIR__ ) . '/openpay_stores.php';
 }
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
