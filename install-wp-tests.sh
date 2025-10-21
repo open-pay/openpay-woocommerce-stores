@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+### ECUTAR ESTE COMANDO PARA NO CREAR LA BASE DE DATOS
+# [bash install-wp-tests.sh mi_db_test mi_usuario mi_contraseña mi_host_docker latest true]
+
 if [ $# -lt 3 ]; then
 	echo "usage: $0 <db-name> <db-user> <db-pass> [db-host] [wp-version] [skip-database-creation]"
 	exit 1
@@ -188,7 +191,7 @@ install_db() {
 		create_db
 	fi
 }
-
+# Para no ejecutar la creación de la base de datos se comenta la linea de install_db
 install_wp
 install_test_suite
-install_db
+#install_db
