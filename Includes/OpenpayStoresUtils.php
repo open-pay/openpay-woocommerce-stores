@@ -1,12 +1,16 @@
 <?php
-namespace OpenpayStores\Includes;
-class OpenpayStoresUtils{
 
-    public static function isNullOrEmptyString($string) {
+namespace OpenpayStores\Includes;
+
+class OpenpayStoresUtils
+{
+    public static function isNullOrEmptyString($string)
+    {
         return (!isset($string) || trim($string) === '');
     }
 
-    public static function getCurrencies($countryCode) {
+    public static function getCurrencies($countryCode)
+    {
         switch ($countryCode) {
             case 'MX':
                 return ['MXN'];
@@ -19,15 +23,17 @@ class OpenpayStoresUtils{
         }
     }
 
-    public static function getUrlPdfBase($isSandbox, $countryCode){
+    public static function getUrlPdfBase($isSandbox, $countryCode)
+    {
         $countryCode = strtolower($countryCode);
-        $sandbox = 'https://sandbox-dashboard.openpay.'.$countryCode.'/paynet-pdf';
-        $production = 'https://dashboard.openpay.'.$countryCode.'/paynet-pdf';
+        $sandbox = 'https://sandbox-dashboard.openpay.' . $countryCode . '/paynet-pdf';
+        $production = 'https://dashboard.openpay.' . $countryCode . '/paynet-pdf';
         $pdfBase = ($isSandbox) ? $sandbox : $production;
-        return $pdfBase;   
+        return $pdfBase;
     }
 
-    public static function getCountryName($countryCode) {
+    public static function getCountryName($countryCode)
+    {
         switch ($countryCode) {
             case 'MX':
                 return 'Mexico';
@@ -40,7 +46,8 @@ class OpenpayStoresUtils{
         }
     }
 
-    public static function getMessageError($countryName, $currency) {  
+    public static function getMessageError($countryName, $currency)
+    {
         $format = 'Openpay Stores Plugin %s is only available for %s currency.';
         return sprintf($format, $countryName, $currency);
     }

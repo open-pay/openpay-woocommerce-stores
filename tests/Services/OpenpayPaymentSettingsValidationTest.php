@@ -3,8 +3,6 @@ namespace OpenpayStores\Tests\Services;
 
 // Importamos las clases que vamos a usar y a probar
 use OpenpayStores\Services\PaymentSettings\OpenpayPaymentSettingsValidation;
-use Openpay\Data\OpenpayApi;
-use OpenpayStores\Includes\OpenpayClient;
 use WP_UnitTestCase;
 use WC_Logger;
 use Mockery;
@@ -49,13 +47,13 @@ class OpenpayPaymentSettingsValidationTest extends WP_UnitTestCase
         // 2. Creamos el mock principal para OpenpayApi (del tipo correcto).
         $mock_openpay_api = $this->createMock(\Openpay\Data\OpenpayApi::class);
 
-        // 3. LA CORRECCIÓN CLAVE: Configuramos el método mágico __get.
+        // 3. CLAVE: Configuramos el método mágico __get.
         // "Cuando alguien intente obtener la propiedad 'webhooks'..."
         $mock_openpay_api->method('__get')
             ->with($this->equalTo('webhooks'))
             ->willReturn($mock_webhooks); // "...devuelve nuestro mock de webhooks."
 
-        // 4. Creamos el "mock parcial" de nuestra clase de validación (esto no cambia).
+        // 4. Creamos el "mock parcial" de nuestra clase de validación.
         $validator = $this->getMockBuilder(OpenpayPaymentSettingsValidation::class)
             ->setConstructorArgs([$this->mock_logger, $this->gateway_id])
             ->onlyMethods(['createOpenpayApiInstance'])
@@ -65,7 +63,7 @@ class OpenpayPaymentSettingsValidationTest extends WP_UnitTestCase
         $validator->method('createOpenpayApiInstance')
             ->willReturn($mock_openpay_api);
 
-        // --- El resto de la prueba no cambia ---
+        // 6. Preparamos los datos de configuración simulados.
         $settings_validos = [
             'woocommerce_openpay_stores_sandbox' => '1',
             'woocommerce_openpay_stores_test_merchant_id' => 'id_valido',
