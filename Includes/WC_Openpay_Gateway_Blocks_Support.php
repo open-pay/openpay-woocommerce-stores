@@ -1,12 +1,12 @@
 <?php
+
 namespace OpenpayStores\Includes;
 
-use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use OpenpayStores\OpenpayStoresGateway;
+use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 
 final class WC_Openpay_Gateway_Blocks_Support extends AbstractPaymentMethodType
 {
-
     protected $name = 'openpay_stores';
 
     public function initialize()
@@ -55,10 +55,10 @@ final class WC_Openpay_Gateway_Blocks_Support extends AbstractPaymentMethodType
     public function get_payment_method_data()
     {
         $openpay_gateway = new OpenpayStoresGateway();
+
         return array(
-            'merchantId' => $openpay_gateway->get_merchant_id(), // Usando el getter
-            'country' => $openpay_gateway->get_country(),         // Usando el getter
+            'merchantId' => $openpay_gateway->get_merchant_id(),
+            'country' => $openpay_gateway->get_country(),
         );
     }
-
 }
