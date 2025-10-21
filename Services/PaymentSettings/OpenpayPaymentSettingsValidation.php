@@ -1,4 +1,5 @@
 <?php
+
 namespace OpenpayStores\Services\PaymentSettings;
 
 use OpenpayStores\Includes\OpenpayClient;
@@ -7,8 +8,8 @@ use WC_Logger;
 use Openpay\Data\OpenpayApi;
 
 // No debe heredar de WC_Payment_Gateway
-class OpenpayPaymentSettingsValidation {
-
+class OpenpayPaymentSettingsValidation
+{
     private $logger;
     private $gateway_id;
     private $openpayClientClass;
@@ -16,7 +17,8 @@ class OpenpayPaymentSettingsValidation {
     /**
      * El constructor ahora requiere el logger y el ID de la pasarela.
      */
-    public function __construct(WC_Logger $logger, string $gateway_id) {
+    public function __construct(WC_Logger $logger, string $gateway_id)
+    {
         $this->logger = $logger;
         $this->gateway_id = $gateway_id; // <-- Guardamos el ID
     }
@@ -27,23 +29,24 @@ class OpenpayPaymentSettingsValidation {
      * @param array $settings Los ajustes enviados desde el formulario.
      * @return bool True si las credenciales son válidas, false en caso contrario.
      */
-    public function validateOpenpayCredentials(array $settings) {
+    public function validateOpenpayCredentials(array $settings)
+    {
         $this->logger->info('Datos recibidos para validación: ' . json_encode($settings));
 
-        $is_sandbox = ! empty($settings['woocommerce_' . $this->gateway_id . '_sandbox']);
+        $is_sandbox = !empty($settings['woocommerce_' . $this->gateway_id . '_sandbox']);
 
         $this->logger->info('RESULTADO DE $is_sandbox: ' . ($is_sandbox ? 'true' : 'false'));
-        
+
         $mode = $is_sandbox ? 'test' : 'live';
-        
+
         // Y usamos el ID para leer las otras claves
         $merchant_id = $settings['woocommerce_' . $this->gateway_id . '_' . $mode . '_merchant_id'] ?? '';
         $private_key = $settings['woocommerce_' . $this->gateway_id . '_' . $mode . '_private_key'] ?? '';
         $country = $settings['woocommerce_' . $this->gateway_id . '_country'] ?? 'MX';
-        
+
         if (empty($merchant_id) || empty($private_key)) {
             \WC_Admin_Settings::add_error('Las credenciales para el modo ' . ($is_sandbox ? 'Sandbox' : 'Producción') . ' no pueden estar vacías.');
-            
+
             // Añadimos un mensaje al log para nosotros (los desarrolladores)
             $this->logger->warning('Intento de guardar credenciales vacías para el modo ' . $mode);
             return null;
@@ -68,7 +71,8 @@ class OpenpayPaymentSettingsValidation {
      * Envuelve la llamada estática para que podamos sobrescribirla en las pruebas.
      * @return \Openpay\Data\OpenpayApi
      */
-    protected function createOpenpayApiInstance(string $merchant_id, string $private_key, string $country, bool $is_sandbox): OpenpayApi {
+    protected function createOpenpayApiInstance(string $merchant_id, string $private_key, string $country, bool $is_sandbox): OpenpayApi
+    {
         return OpenpayClient::getInstance($merchant_id, $private_key, $country, $is_sandbox);
     }
 
@@ -78,7 +82,8 @@ class OpenpayPaymentSettingsValidation {
      * @param array $allowed_currencies Monedas permitidas.
      * @return bool True si la moneda es válida, false en caso contrario.
      */
-    public function validateCurrency(array $allowed_currencies): bool {
+    public function validateCurrency(array $allowed_currencies): bool
+    {
         $store_currency = get_woocommerce_currency();
         if (!in_array($store_currency, $allowed_currencies)) {
             \WC_Admin_Settings::add_error('La moneda actual de la tienda (' . $store_currency . ') no es compatible con la configuración regional de Openpay.');

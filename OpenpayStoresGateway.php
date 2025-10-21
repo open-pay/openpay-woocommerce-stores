@@ -57,7 +57,10 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Método para establecer las propiedades según los ajustes actuales
         $this->setup_properties();
         // Engancha el método para guardar las opciones cuando el admin hace clic en "Guardar cambios"
-        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ));
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+
+        // Usa el ID de la pasarela para construir el nombre del hook
+        add_action('woocommerce_api_' . $this->id, array($this, 'webhook_handler'));
     }
 
     private function setup_properties()
@@ -169,7 +172,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Ejecutamos la validación y capturamos la instancia de Openpay (o null).
         $openpay_instance = $validator->validateOpenpayCredentials($post_data);
 
-        //$credentials_are_valid = $validator->validateOpenpayCredentials($post_data);
         $currency_is_valid = $validator->validateCurrency($this->currencies);
 
         // Comprobamos si todas las validaciones pasaron.
@@ -185,10 +187,10 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
             // Usamos un try-catch por si la API de Openpay falla.
             try {
-                // Llamamos al método que creamos para el webhook.
+                // Llamamos al método para verificar o crear el webhook.
                 $this->ensureWebhookExists($openpay_instance);
 
-                // Opcional: Añadir un mensaje de éxito para el webhook (en verde).
+                // Añadir un mensaje de éxito para el webhook (en verde).
                 \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay verificado y configurado correctamente.', 'openpay_stores'));
             } catch (\Exception $e) {
                 // Si la creación del webhook falla, mostramos un error, pero los ajustes ya se guardaron.
@@ -208,7 +210,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
      */
     private function ensureWebhookExists(OpenpayApi $openpayApi)
     {
-        
+
         // Creamos nuestro servicio, inyectando la dependencia.
         $webhookService = new OpenpayWebhookService($openpayApi);
 
@@ -235,6 +237,22 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
     public function webhook_handler()
     {
+        // Responde inmediatamente para que Openpay no espere
+        @header('HTTP/1.1 200 OK');
+
+        $payload = file_get_contents('php://input');
+
+        // TODO:
+        // Aquí iría la lógica para verificar la firma del webhook de Openpay (MUY IMPORTANTE para producción)
+        // if ( ! $this->is_valid_signature($payload, $_SERVER['HTTP_OPENPAY_SIGNATURE']) ) {
+        //     $this->logger->warning('Petición de webhook con firma inválida recibida.');
+        //     exit; // No procesar si no es válido
+        // }
+
+        // Pon el procesamiento en la cola de WooCommerce para que se ejecute en segundo plano
+        WC()->queue()->add('openpay_stores_process_webhook', array('payload' => $payload));
+
+        exit; // Termina la ejecución para asegurar una respuesta limpia
     }
 
     public function admin_options()
@@ -285,5 +303,4 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function isNullOrEmptyString()
     {
     }
-
 }
