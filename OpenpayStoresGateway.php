@@ -20,6 +20,19 @@ use OpenpayStores\Services\OpenpayWebhookService;
     WC tested up to: 8.0.*
  */
 
+add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
+    // Ruta interna del plugin donde guardas las plantillas
+    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
+
+    // Si existe una plantilla dentro del plugin con ese nombre se utilizara para el correo
+    $plugin_template = $plugin_path . $template_name;
+
+    if (file_exists($plugin_template)) {
+        return $plugin_template;
+    }
+
+    return $template;
+}, 999, 3);
 class OpenpayStoresGateway extends WC_Payment_Gateway
 {
     const VERSION_NUMBER_ADMIN_SCRIPT = '1.0.0';
