@@ -15,12 +15,12 @@ class OpenpayPaymentSettingsValidation
     private $openpayClientClass;
 
     /**
-     * El constructor ahora requiere el logger y el ID de la pasarela.
+     * El constructor requiere el logger y el ID de la pasarela.
      */
     public function __construct(WC_Logger $logger, string $gateway_id)
     {
         $this->logger = $logger;
-        $this->gateway_id = $gateway_id; // <-- Guardamos el ID
+        $this->gateway_id = $gateway_id;
     }
 
     /**
@@ -47,7 +47,7 @@ class OpenpayPaymentSettingsValidation
         if (empty($merchant_id) || empty($private_key)) {
             \WC_Admin_Settings::add_error('Las credenciales para el modo ' . ($is_sandbox ? 'Sandbox' : 'Producción') . ' no pueden estar vacías.');
 
-            // Añadimos un mensaje al log para nosotros (los desarrolladores)
+            // Añadimos un mensaje al log
             $this->logger->warning('Intento de guardar credenciales vacías para el modo ' . $mode);
             return null;
         }
