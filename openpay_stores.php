@@ -51,6 +51,19 @@ add_action('before_woocommerce_init', function () {
     }
 });
 
+add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
+    // Ruta interna del plugin donde guardas las plantillas
+    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
+
+    // Si existe una plantilla dentro del plugin con ese nombre se utilizara para el correo
+    $plugin_template = $plugin_path . $template_name;
+
+    if (file_exists($plugin_template)) {
+        return $plugin_template;
+    }
+
+    return $template;
+}, 999, 3);
 
 /**
  * Inicializa la pasarela de pago.
