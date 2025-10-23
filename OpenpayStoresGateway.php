@@ -260,9 +260,15 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
 
 
-    public function payment_fields()
-    {
+    public function payment_fields() {
+        echo '<div class="openpay-logos">';
+        echo '<img src="' . esc_url(plugins_url('assets/images/newcheckout/openpay-stores-icons.svg', __FILE__)) . '" alt="" />';
+        echo '</div>';
+        $this->images_dir = plugin_dir_url( __FILE__ ).'/assets/images/';
+        $this->fonts_dir = plugin_dir_url(__FILE__).'/assets/Fonts';
+        include_once('templates/payment.php');
     }
+    
     protected function processOpenpayCharge()
     {
     }
