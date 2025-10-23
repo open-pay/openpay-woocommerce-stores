@@ -31,3 +31,5 @@ Thumbs.db
 # ## Archivos de configuración local de WordPress ##
 # (Si alguna vez los usas)
 wp-config-local.php
+
+/node_modules/
