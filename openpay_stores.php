@@ -65,6 +65,9 @@ add_filter('woocommerce_locate_template', function ($template, $template_name, $
     return $template;
 }, 999, 3);
 
+//Hook para llamar scripts personalizados
+add_action('wp_enqueue_scripts', 'payment_scripts');
+
 /**
  * Inicializa la pasarela de pago.
  */
@@ -122,4 +125,11 @@ function openpay_stores_blocks_support()
             $payment_method_registry->register(new WC_Openpay_Gateway_Blocks_Support());
         }
     );
+}
+
+function payment_scripts(){
+    if (!is_checkout()) {
+        return;
+    }
+    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array( 'jquery' ), '', true);
 }
