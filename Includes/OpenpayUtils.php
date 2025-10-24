@@ -2,10 +2,9 @@
 
 namespace OpenpayStores\Includes;
 
-class OpenpayStoresUtils
+class OpenpayUtils
 {
-    public static function isNullOrEmptyString($string)
-    {
+    public static function isNullOrEmptyString($string){
         return (!isset($string) || trim($string) === '');
     }
 

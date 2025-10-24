@@ -6,7 +6,7 @@
   License: GNU General Public License v3.0
   License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
-use OpenpayStores\Includes\OpenpayStoresUtils;
+use OpenpayStores\Includes\OpenpayUtils;
 ?>
 
 <h3>
@@ -16,8 +16,8 @@ use OpenpayStores\Includes\OpenpayStoresUtils;
 <?php if(!$this->validateCurrency()): ?>
     <div class="inline error">
         <?php
-            $countryName = OpenpayStoresUtils::getCountryName($this->country);
-            $message = OpenpayStoresUtils::getMessageError($countryName, $this->currencies[0]);
+            $countryName = OpenpayUtils::getCountryName($this->country);
+            $message = OpenpayUtils::getMessageError($countryName, $this->currencies[0]);
             echo $message;
         ?>
     </div>
