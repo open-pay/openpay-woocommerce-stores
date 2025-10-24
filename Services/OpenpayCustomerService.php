@@ -1,33 +1,30 @@
 <?php
 namespace OpenpayStores\Services;
-use OpenpayStores\Includes\OpenpayStoresUtils;
+use OpenpayStores\Includes\OpenpayUtils;
 
 Class OpenpayCustomerService{
     private $logger;
     private $openpay;
     private $country;
     private $sandbox;
-    
+
     public function __construct($openpay,$country,$sandbox){
-        $this->logger = wc_get_logger(); 
+        $this->logger = wc_get_logger();
         $this->openpay = $openpay;
         $this->country = $country;
         $this->sandbox = $sandbox;
-        
+
     }
 
     public function retrieveCustomer($order){
         $customer_id = $this->getCustomerId();
-        try { 
-            if (OpenpayStoresUtils::isNullOrEmptyString($customer_id)) {
+        try {
+            if (OpenpayUtils::isNullOrEmptyString($customer_id)) {
                 $this->logger->info('(retrieveCustomer) customer_id not exists - ' . $customer_id);
-                if (is_user_logged_in()) {
-                    return $this->create($order);
-                }
             }else{
                 $this->logger->info('(retrieveCustomer) customer_id exists - ' . $customer_id);
                 return $this->openpay->customers->get($customer_id);
-            } 
+            }
         } catch (Exception $e) {
             //$this->error($e);
             return false;
@@ -42,11 +39,11 @@ Class OpenpayCustomerService{
                 $customer_id = get_user_meta(get_current_user_id(), '_openpay_customer_test_id', true);
             } else {
                 $customer_id = get_user_meta(get_current_user_id(), '_openpay_customer_live_id', true);
-            }            
+            }
         }
         $this->logger->info('(getCustomerId) customer_id_test - ' . get_user_meta(get_current_user_id(), '_openpay_customer_test_id', true) );
         $this->logger->info('(getCustomerId) customer_id_live - ' . get_user_meta(get_current_user_id(), '_openpay_customer_live_id', true) );
-        return $customer_id; 
+        return $customer_id;
     }
 
     public function updateCustomerId($customer_id){
@@ -55,38 +52,18 @@ Class OpenpayCustomerService{
                 update_user_meta(get_current_user_id(), '_openpay_customer_test_id', $customer_id);
             } else {
                 update_user_meta(get_current_user_id(), '_openpay_customer_live_id', $customer_id);
-            }                
-        }
-    }
-
-
-    public function create($order) {
-        $customer_data = $this->collectCustomerData($order);
-        $this->logger->info('(create) customer_data - ' . json_encode($customer_data));
-        try {
-            $customer = $this->openpay->customers->add($customer_data);
-            $this->logger->info('customer_id - ' . $customer->id); 
-            $this->updateCustomerId($customer->id);
-           
-            $this->logger->info('customer_data - ' . $customer_data); 
-            $this->logger->info('customer_id - ' . $customer->id); 
-
-            return $customer;
-
-        } catch (Exception $e) {
-            //$this->error($e);
-            return false;
+            }
         }
     }
 
     public function collectCustomerData($order) {
 
-        $customer_data = array(            
+        $customer_data = array(
             'name' => $order->get_billing_first_name(),
             'last_name' => $order->get_billing_last_name(),
             'email' => $order->get_billing_email(),
             'requires_account' => false,
-            'phone_number' => $order->get_billing_phone()            
+            'phone_number' => $order->get_billing_phone()
         );
 
         if ($this->country === 'MX' || $this->country === 'PE') {
@@ -105,7 +82,7 @@ Class OpenpayCustomerService{
                 'additional' => substr($order->get_billing_address_1(), 0, 200).' '.substr($order->get_billing_address_2(), 0, 50)
             );
         }
-        
+
         return $customer_data;
     }
 
