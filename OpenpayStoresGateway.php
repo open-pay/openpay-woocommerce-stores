@@ -21,21 +21,6 @@ use OpenpayStores\Services\OpenpayCustomerService;
     WC requires at least: 3.0
     WC tested up to: 8.0.*
  */
-
-add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
-    // Ruta interna del plugin donde guardas las plantillas
-    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
-
-    // Si existe una plantilla dentro del plugin con ese nombre se utilizara para el correo
-    $plugin_template = $plugin_path . $template_name;
-
-    if (file_exists($plugin_template)) {
-        return $plugin_template;
-    }
-
-    return $template;
-}, 999, 3);
-
 class OpenpayStoresGateway extends WC_Payment_Gateway
 {
     const VERSION_NUMBER_ADMIN_SCRIPT = '1.0.0';
@@ -326,9 +311,15 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
 
 
-    public function payment_fields()
-    {
+    public function payment_fields() {
+        echo '<div class="openpay-logos">';
+        echo '<img src="' . esc_url(plugins_url('assets/images/newcheckout/openpay-stores-icons.svg', __FILE__)) . '" alt="" />';
+        echo '</div>';
+        $this->images_dir = plugin_dir_url( __FILE__ ).'/assets/images/';
+        $this->fonts_dir = plugin_dir_url(__FILE__).'/assets/Fonts';
+        include_once('templates/payment.php');
     }
+    
     protected function processOpenpayCharge()
     {
     }
