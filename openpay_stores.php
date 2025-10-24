@@ -51,6 +51,22 @@ add_action('before_woocommerce_init', function () {
     }
 });
 
+add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
+    // Ruta interna del plugin donde guardas las plantillas
+    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
+
+    // Si existe una plantilla dentro del plugin con ese nombre se utilizara para el correo
+    $plugin_template = $plugin_path . $template_name;
+
+    if (file_exists($plugin_template)) {
+        return $plugin_template;
+    }
+
+    return $template;
+}, 999, 3);
+
+//Hook para llamar scripts personalizados
+add_action('wp_enqueue_scripts', 'payment_scripts');
 
 /**
  * Inicializa la pasarela de pago.
@@ -109,4 +125,11 @@ function OpenpayStoresGateway_blocks_support()
             $payment_method_registry->register(new OpenpayStoresGateway_Blocks_Support());
         }
     );
+}
+
+function payment_scripts(){
+    if (!is_checkout()) {
+        return;
+    }
+    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array( 'jquery' ), '', true);
 }
