@@ -4,11 +4,13 @@ namespace OpenpayStores;
 
 use Openpay\Data\OpenpayApi;
 use OpenpayStores\Includes\OpenpayClient;
-use OpenpayStores\Includes\OpenpayStoresUtils;
+use OpenpayStores\Includes\OpenpayUtils;
 use OpenpayStores\Services\PaymentSettings\OpenpayPaymentSettingsValidation;
 use WC_Payment_Gateway;
 use WC_Admin_Settings;
 use OpenpayStores\Services\OpenpayWebhookService;
+use OpenpayStores\Services\OpenpayChargeService;
+use OpenpayStores\Services\OpenpayCustomerService;
 
 /*
   Title:    Openpay Payment extension for WooCommerce
@@ -30,12 +32,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $transactionErrorMessage = null;
     protected $currencies;
     protected $logger = null;
-    protected $country = '';
+    public $country = '';
     protected $iva = 0;
-    protected $test_merchant_id;
-    protected $test_private_key;
-    protected $live_merchant_id;
-    protected $live_private_key;
     protected $deadline;
     protected $merchant_id;
     protected $private_key;
@@ -46,6 +44,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function __construct()
     {
         $this->id = 'openpay_stores';
+        $this->title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
 
@@ -70,8 +69,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->private_key = $this->is_sandbox ? $this->get_option('test_private_key') : $this->get_option('live_private_key');
 
         // Mueve aquí el resto de las propiedades que dependen de los ajustes
-        $this->currencies = OpenpayStoresUtils::getCurrencies($this->country);
-        $this->pdf_url_base = OpenpayStoresUtils::getUrlPdfBase($this->is_sandbox, $this->country);
+        $this->currencies = OpenpayUtils::getCurrencies($this->country);
+        $this->pdf_url_base = OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country);
         $this->deadline = $this->get_option('deadline');
         $this->iva = $this->country == 'CO' ? $this->get_option('iva') : 0;
     }
@@ -85,8 +84,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         return $this->country;
     }
 
-    public function init_form_fields()
-    {
+    public function init_form_fields() {
         $this->form_fields = array(
             'enabled' => array(
                 'type' => 'checkbox',
@@ -150,6 +148,59 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
             ),
         );
     }
+
+    public function process_payment($order_id) {
+        global $woocommerce;
+        $order = wc_get_order($order_id);
+        $this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+
+        // Obtener el cliente -> si no existe agregar la información al cargo.
+        $customer_service = new OpenpayCustomerService($this->openpay, $this->country, $this->is_sandbox);
+        $openpay_customer = $customer_service->retrieveCustomer($order);
+
+        $payment_settings = array(
+            'openpay_customer' => $openpay_customer,
+            'pdf_url_base'=> OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country),
+            'deadline' => $this->deadline,
+            'sandbox' => $this->is_sandbox,
+            'merchant_id' => $this->merchant_id,
+            'country' => $this->country,
+            'iva' => $this->iva
+        );
+
+        // Se ejecuta la petición de creación de orden de pago
+        $charge_service = new OpenpayChargeService($this->openpay, $order, $customer_service);
+        $charge = $charge_service->processOpenpayCharge($payment_settings);
+
+        if ($charge) {
+            $order->update_status('on-hold', 'En espera de pago');
+            wc_reduce_stock_levels($order);
+            $woocommerce->cart->empty_cart();
+            $order->add_order_note(sprintf("El pago será procesado por %s con ID de transacción: '%s'", $this->GATEWAY_NAME, $charge->id));
+
+            return array(
+                'result' => 'success',
+                'redirect' => $this->get_return_url($order)
+            );
+        } else {
+            $order->add_order_note(sprintf("%s - Error en la transacción: '%s'", $this->GATEWAY_NAME, $this->transactionErrorMessage));
+
+            if (function_exists('wc_add_notice')) {
+                wc_add_notice(__('Error en la transacción: No se pudo completar tu pago.'), $notice_type = 'error');
+            } else {
+                $woocommerce->add_error(__('Error en la transacción: No se pudo completar tu pago.'), 'woothemes');
+            }
+            return false;
+        }
+    }
+
+    public function validate_fields()
+    {
+        $this->logger->debug('validate_fields - ' . json_encode($_POST));
+        return true;
+    }
+
+
 
     public function openpay_stores_admin_enqueue()
     {
@@ -270,10 +321,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
     
     protected function processOpenpayCharge()
-    {
-    }
-
-    public function process_payment($order_id)
     {
     }
     public function createOpenpayCharge()

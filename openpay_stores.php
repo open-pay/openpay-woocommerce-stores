@@ -1,7 +1,7 @@
 <?php
 
 use OpenpayStores\OpenpayStoresGateway;
-use OpenpayStores\Includes\WC_Openpay_Gateway_Blocks_Support;
+use OpenpayStores\Includes\OpenpayStoresGateway_Blocks_Support;
 
 /**
  * Plugin Name: Openpay Stores Plugin
@@ -33,16 +33,16 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 
 // Hook para inicializar la pasarela
-add_action('plugins_loaded', 'openpay_stores_init_gateway_class');
+add_action('plugins_loaded', 'OpenpayStoresGateway_init_gateway_class');
 
 // Hook para registrar los scripts de admin
-add_action('admin_enqueue_scripts', 'openpay_stores_admin_enqueue');
+add_action('admin_enqueue_scripts', 'OpenpayStoresGateway_admin_enqueue');
 
 // Hook para cargar el soporte de bloques
-add_action('woocommerce_blocks_loaded', 'openpay_stores_blocks_support');
+add_action('woocommerce_blocks_loaded', 'OpenpayStoresGateway_blocks_support');
 
 // Hook para añadir el enlace de "Ajustes" en la página de plugins
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'openpay_stores_settings_link');
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'OpenpayStoresGateway_settings_link');
 
 // Hook para la compatibilidad con tablas de órdenes de WooCommerce
 add_action('before_woocommerce_init', function () {
@@ -71,19 +71,19 @@ add_action('wp_enqueue_scripts', 'payment_scripts');
 /**
  * Inicializa la pasarela de pago.
  */
-function openpay_stores_init_gateway_class()
+function OpenpayStoresGateway_init_gateway_class()
 {
     if (!class_exists('WC_Payment_Gateway')) {
         return;
     }
     // Este es el único filtro que necesitas para registrar la pasarela
-    add_filter('woocommerce_payment_gateways', 'add_openpay_stores_gateway');
+    add_filter('woocommerce_payment_gateways', 'OpenpayStoresGateway_add_gateway');
 }
 
 /**
  * Registra la clase de la pasarela en WooCommerce.
  */
-function add_openpay_stores_gateway($gateways)
+function OpenpayStoresGateway_add_gateway($gateways)
 {
     $gateways[] = OpenpayStoresGateway::class;
     return $gateways;
@@ -92,7 +92,7 @@ function add_openpay_stores_gateway($gateways)
 /**
  * Registra el script de JavaScript para el panel de administración.
  */
-function openpay_stores_admin_enqueue($hook)
+function OpenpayStoresGateway_admin_enqueue($hook)
 {
     wp_enqueue_script('openpay_stores_admin_form', plugins_url('assets/js/admin.js', __FILE__), array('jquery'), '1.0.2', true);
 }
@@ -100,7 +100,7 @@ function openpay_stores_admin_enqueue($hook)
 /**
  * Añade el enlace de "Ajustes" a la lista de acciones del plugin.
  */
-function openpay_stores_settings_link($links)
+function OpenpayStoresGateway_settings_link($links)
 {
     $settings_link = '<a href="' . admin_url('admin.php?page=wc-settings&tab=checkout&section=openpay_stores') . '">' . __('Ajustes', 'openpay_stores') . '</a>';
     array_unshift($links, $settings_link); // unshift lo pone al principio, es más común
@@ -110,7 +110,7 @@ function openpay_stores_settings_link($links)
 /**
  * Registra la integración con los bloques de WooCommerce.
  */
-function openpay_stores_blocks_support()
+function OpenpayStoresGateway_blocks_support()
 {
     if (!class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
         return;
@@ -122,7 +122,7 @@ function openpay_stores_blocks_support()
         'woocommerce_blocks_payment_method_type_registration',
         function (Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry) {
             // Usamos la clase con su namespace completo
-            $payment_method_registry->register(new WC_Openpay_Gateway_Blocks_Support());
+            $payment_method_registry->register(new OpenpayStoresGateway_Blocks_Support());
         }
     );
 }
