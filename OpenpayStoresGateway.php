@@ -84,7 +84,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         return $this->country;
     }
 
-    public function init_form_fields() {
+    public function init_form_fields()
+    {
         $this->form_fields = array(
             'enabled' => array(
                 'type' => 'checkbox',
@@ -149,7 +150,8 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         );
     }
 
-    public function process_payment($order_id) {
+    public function process_payment($order_id)
+    {
         global $woocommerce;
         $order = wc_get_order($order_id);
         $this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
@@ -160,7 +162,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
         $payment_settings = array(
             'openpay_customer' => $openpay_customer,
-            'pdf_url_base'=> OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country),
+            'pdf_url_base' => OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country),
             'deadline' => $this->deadline,
             'sandbox' => $this->is_sandbox,
             'merchant_id' => $this->merchant_id,
@@ -260,30 +262,36 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
      */
     private function ensureWebhookExists(OpenpayApi $openpayApi)
     {
-
         // Creamos nuestro servicio, inyectando la dependencia.
-        $webhookService = new OpenpayWebhookService($openpayApi);
+        $webhookService = new OpenpayWebhookService($openpayApi, $this->logger);
 
         // Construimos la URL del webhook usando una función de WordPress.
-        $webhook_url = site_url('/wc-api/Openpay_Stores', 'https');
+        $target_url_pretty = site_url('/wc-api/Openpay_Stores', 'https');
+        $target_url_simple = site_url('/index.php?wc-api=Openpay_Stores', 'https');
 
-        // Usamos el servicio para buscar el webhook.
-        $existingWebhook = $webhookService->findWebhookByUrl($webhook_url);
+        $this->logger->info('Iniciando verificación de webhook. URL objetivo: ' . $target_url_pretty);
 
-        if ($existingWebhook) {
-            // Si ya existe, guardamos su ID y no hacemos nada más.
-            update_option('woocommerce_openpay_stores_webhook_id', $existingWebhook->id);
-            $this->logger->info('Webhook ya existente encontrado: ' . $existingWebhook->id);
-            return;
+        try {
+            // Logica principal de webhooks
+            $result = $webhookService->reconcileWebhooks($target_url_pretty, $target_url_simple);
+
+            $status = $result['status'];
+            $webhook_id = $result['id'];
+
+            // El Gateway maneja la respuesta (Responsabilidad del Gateway, conoce 'update_option' y 'WC_Admin_Settings')
+            update_option('woocommerce_openpay_stores_webhook_id', $webhook_id);
+
+            if ($status === 'created') {
+                \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay configurado correctamente.', 'openpay_stores'));
+            } else {
+                \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay verificado (ya existía).', 'openpay_stores'));
+            }
+        } catch (\Exception $e) {
+            // Captura errores de getAllWebhooks() o createWebhook()
+            $this->logger->error('Error mayor en la gestión de webhooks: ' . $e->getMessage());
+            // Lanza la excepción para que process_admin_options la atrape y muestre el error.
+            throw $e;
         }
-
-        // Si no existe, usamos el servicio para crearlo.
-        $newWebhook = $webhookService->createWebhook($webhook_url);
-
-        // Guardamos el ID del nuevo webhook como una opción del sitio.
-        // Es mejor práctica guardarlo en 'options' que en 'user_meta'.
-        update_option('woocommerce_openpay_stores_webhook_id', $newWebhook->id);
-        $this->logger->info('Nuevo webhook creado exitosamente: ' . $newWebhook->id);
     }
     public function webhook_handler()
     {
@@ -311,15 +319,16 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
 
 
-    public function payment_fields() {
+    public function payment_fields()
+    {
         echo '<div class="openpay-logos">';
         echo '<img src="' . esc_url(plugins_url('assets/images/newcheckout/openpay-stores-icons.svg', __FILE__)) . '" alt="" />';
         echo '</div>';
-        $this->images_dir = plugin_dir_url( __FILE__ ).'/assets/images/';
-        $this->fonts_dir = plugin_dir_url(__FILE__).'/assets/Fonts';
+        $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
+        $this->fonts_dir = plugin_dir_url(__FILE__) . '/assets/Fonts';
         include_once('templates/payment.php');
     }
-    
+
     protected function processOpenpayCharge()
     {
     }
