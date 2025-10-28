@@ -24,15 +24,19 @@ class OpenpayChargeService
 
     public function processOpenpayCharge($payment_settings)
     {
-        $this->logger->info('processOpenpayCharge INIT - ');
+        $this->logger->info('[OpenpayChargeService.processOpenpayCharge] Inicio');
         $charge_request = $this->collectChargeData($payment_settings);
-        $this->logger->info('processOpenpayCharge charge_request - ' , json_encode($charge_request));
+        $this->logger->info('[OpenpayChargeService.processOpenpayCharge] charge_request - ' . json_encode($charge_request));
         $charge = $this->create($payment_settings['openpay_customer'], $charge_request);
-        $this->logger->info('processOpenpayCharge charge - ' . json_encode($charge));
+        $this->logger->info('[OpenpayChargeService.processOpenpayCharge] charge - ' . json_encode($charge));
 
         if ($charge != false) {
             $this->transaction_id = $charge->id;
-            $pdf_url = $payment_settings->pdf_url_base.'/'.$payment_settings->merchant_id. "/".'transaction'."/".$charge->id;
+            $reference = $charge->payment_method->reference;
+            $barcode_url = $charge->payment_method->barcode_url;
+            $due_date = $charge->due_date;
+            $this->logger->info('URL PDF:'. $payment_settings['pdf_url_base']);
+            $pdf_url = $payment_settings['pdf_url_base'].'/'.$payment_settings['merchant_id']. "/".'transaction'."/".$charge->id;
             //WC()->session->set('pdf_url', $pdf_url);
             //Save data for the ORDER
             if ($payment_settings->sandbox) {
@@ -40,11 +44,9 @@ class OpenpayChargeService
             } else {
                 $customer_id = get_user_meta(get_current_user_id(), '_openpay_customer_id', true);
             }
-            $this->order->update_meta_data('_transaction_id', $charge->id);
-            $this->order->update_meta_data('_country', $payment_settings['country']);
-            $this->order->update_meta_data('_pdf_url', $pdf_url);
 
-            $this->logger->info('processOpenpayCharge FINISH - ');
+            $this->saveChargeMetaData($charge, $payment_settings['country'], $pdf_url, $barcode_url, $reference, $due_date);
+            $this->logger->info('[OpenpayChargeService.processOpenpayCharge] Fin');
             return $charge;
         } else {
             return false;
@@ -88,6 +90,25 @@ class OpenpayChargeService
         }
 
         return $charge_request;
+    }
+
+    /**
+     * @param $charge
+     * @param $country
+     * @param string $pdf_url
+     * @param $barcode_url
+     * @param $reference
+     * @param $due_date
+     * @return void
+     */
+    public function saveChargeMetaData($charge, $country, string $pdf_url, $barcode_url, $reference, $due_date): void
+    {
+        $this->order->update_meta_data('_transaction_id', $charge->id);
+        $this->order->update_meta_data('_country', $country);
+        $this->order->update_meta_data('_pdf_url', $pdf_url);
+        $this->order->update_meta_data('_openpay_barcode_url', $barcode_url);
+        $this->order->update_meta_data('_openpay_reference', $reference);
+        $this->order->update_meta_data('_due_date', $due_date);
     }
 
 }
