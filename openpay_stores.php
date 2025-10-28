@@ -133,3 +133,61 @@ function payment_scripts(){
     }
     wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array( 'jquery' ), '', true);
 }
+
+//Filtro para personalizar plantillas de WooCommerce
+add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
+    global $wp;
+
+    // Verificar si es un contexto de orden de Openpay
+    $is_openpay_context = false;
+
+    // Verificar en la página de thank you
+    if (isset($wp->query_vars['order-received'])) {
+        $order_id = absint($wp->query_vars['order-received']);
+        if ($order_id) {
+            $order = wc_get_order($order_id);
+            if ($order && $order->get_payment_method() === 'openpay_stores') {
+                $is_openpay_context = true;
+            }
+        }
+    }
+
+    // Verificar en emails (cuando se está renderizando un correo)
+    if (!$is_openpay_context && did_action('woocommerce_email_header')) {
+        // Intentar obtener el objeto de email actual
+        $email = WC()->mailer()->get_emails();
+        foreach ($email as $email_obj) {
+            if (isset($email_obj->object) && is_a($email_obj->object, 'WC_Order')) {
+                $order = $email_obj->object;
+                if ($order->get_payment_method() === 'openpay_stores') {
+                    $is_openpay_context = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Solo aplicar el filtro si es contexto de Openpay
+    if (!$is_openpay_context) {
+        return $template;
+    }
+
+    // Lista de plantillas permitidas
+    $allowed_templates = array(
+        'emails/customer-on-hold-order.php'
+    );
+
+    if (!in_array($template_name, $allowed_templates)) {
+        return $template;
+    }
+
+    // Ruta interna del plugin donde guardas las plantillas
+    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
+    $plugin_template = $plugin_path . $template_name;
+
+    if (file_exists($plugin_template)) {
+        return $plugin_template;
+    }
+
+    return $template;
+}, 999, 3);
