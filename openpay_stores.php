@@ -130,7 +130,7 @@ function OpenpayStoresGateway_blocks_support()
 function payment_scripts(){
     // Validamos si es el checkout por bloques
     global $post;
-    if($post && has_block( 'woocommerce/checkout', $post )) {
+    if($post && has_block( 'woocommerce/checkout', $post ) || is_checkout()) {
         wp_enqueue_style('openpay-store-checkout-style', plugins_url('assets/css/openpay-store-checkout-style.css', __FILE__));    
     }
     
