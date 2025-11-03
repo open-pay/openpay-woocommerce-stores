@@ -1,10 +1,35 @@
 <?xml version="1.0"?>
-<ruleset name="MiPluginStandard">
-    <file>.</file>
-    <exclude-pattern>/vendor/</exclude-pattern>
-
-    <arg name="colors"/>
-    <arg value="p"/>
-
-    <rule ref="PSR12"/>
-</ruleset>
+<phpunit
+    bootstrap="tests/bootstrap.php"
+    backupGlobals="false"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="false"
+    convertWarningsToExceptions="false"
+    convertDeprecationsToExceptions="false"
+    beStrictAboutOutputDuringTests="false"
+    beStrictAboutCoverageMetadata="false"
+    testdox="true"
+    >
+    <testsuites>
+        <testsuite name="Openpay WooCommerce Stores Test Suite">
+            <directory>./tests</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">./Services</directory>
+            <directory suffix=".php">./Includes</directory>
+        </include>
+        <exclude>
+            <directory>./tests</directory>
+            <directory>./vendor</directory>
+        </exclude>
+    </coverage>
+    <php>
+        <ini name="display_errors" value="1" />
+        <ini name="error_reporting" value="-1" />
+        <ini name="WP_DEBUG" value="0" />
+        <ini name="WP_DEBUG_DISPLAY" value="0" />
+    </php>
+</phpunit>
