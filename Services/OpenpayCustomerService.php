@@ -20,7 +20,7 @@ Class OpenpayCustomerService{
         $this->logger->info('[OpenpayCustomerService.retrieveCustomer] start ');
         $customer_id = $this->getCustomerId();
         try {
-            if (\OpenpayCards\Includes\OpenpayUtils::isNullOrEmptyString($customer_id)) {
+            if (\OpenpayStores\Includes\OpenpayUtils::isNullOrEmptyString($customer_id)) {
                 $this->logger->info('[OpenpayCustomerService.retrieveCustomer] => customer_id not exists - ' . $customer_id);
                 if (is_user_logged_in()) {
                     return $this->create($order);
