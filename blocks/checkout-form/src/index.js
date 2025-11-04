@@ -5,7 +5,7 @@ import Form from './form';
 const { registerPaymentMethod } = window.wc.wcBlocksRegistry;
 const { getSetting } = window.wc.wcSettings
 
-const settings = getSetting( 'wc_openpay_stores_data', {} )
+const settings = getSetting( 'openpay_stores_data', {} )
 
 //const label = decodeEntities( settings.title )
 const label = decodeEntities( 'Pago seguro con efectivo' )
