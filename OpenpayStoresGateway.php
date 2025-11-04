@@ -38,7 +38,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $merchant_id;
     protected $private_key;
     protected $pdf_url_base;
-    protected $images_dir;
+    public $images_dir;
 
 
     public function __construct()
@@ -47,6 +47,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
+        $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
 
         $this->init_form_fields();
         $this->init_settings();
@@ -325,7 +326,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         echo '<img src="' . esc_url(plugins_url('assets/images/newcheckout/openpay-stores-icons.svg', __FILE__)) . '" alt="" />';
         echo '</div>';
         $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
-        $this->fonts_dir = plugin_dir_url(__FILE__) . '/assets/Fonts';
+        //$this->fonts_dir = plugin_dir_url(__FILE__) . '/assets/Fonts';
         include_once('templates/payment.php');
     }
 

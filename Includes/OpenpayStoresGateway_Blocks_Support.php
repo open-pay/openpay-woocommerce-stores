@@ -53,6 +53,7 @@ final class OpenpayStoresGateway_Blocks_Support extends AbstractPaymentMethodTyp
 
         return array(
             'country' => $openpay_gateway->country,
+            'images_dir' => $openpay_gateway->images_dir
         );
     }
 
