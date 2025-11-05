@@ -39,7 +39,7 @@ class OpenpayPaymentSettingsValidation
 
         $mode = $is_sandbox ? 'test' : 'live';
 
-        // Y usamos el ID para leer las otras claves
+        // usamos el ID para leer las otras claves
         $merchant_id = $settings['woocommerce_' . $this->gateway_id . '_' . $mode . '_merchant_id'] ?? '';
         $private_key = $settings['woocommerce_' . $this->gateway_id . '_' . $mode . '_private_key'] ?? '';
         $country = $settings['woocommerce_' . $this->gateway_id . '_country'] ?? 'MX';
@@ -47,7 +47,6 @@ class OpenpayPaymentSettingsValidation
         if (empty($merchant_id) || empty($private_key)) {
             \WC_Admin_Settings::add_error('Las credenciales para el modo ' . ($is_sandbox ? 'Sandbox' : 'Producción') . ' no pueden estar vacías.');
 
-            // Añadimos un mensaje al log
             $this->logger->warning('Intento de guardar credenciales vacías para el modo ' . $mode);
             return null;
         }
@@ -61,7 +60,6 @@ class OpenpayPaymentSettingsValidation
         } catch (\Exception $e) {
             \WC_Admin_Settings::add_error('Error al validar las credenciales de Openpay: ' . esc_html($e->getMessage()));
 
-            // Registramos el error completo en el log para poder depurarlo
             $this->logger->error('Fallo en la validación de API: ' . $e->getMessage());
             return null;
         }
