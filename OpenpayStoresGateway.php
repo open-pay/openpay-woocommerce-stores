@@ -216,9 +216,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Obtenemos los datos enviados por el usuario.
         $post_data = $this->get_post_data(); // get_post_data() es un método de WC_Payment_Gateway que ya te da los datos del POST.
 
-        $selected_country = $post_data['woocommerce_' . $this->id . '_country'] ?? 'MX';
-        $allowed_currencies_for_country = OpenpayUtils::getCurrencies($selected_country);
-
         $logger = wc_get_logger();
         $logger->info('DATOS ENVIADOS DESDE GATEWAY: ' . json_encode($post_data));
 
@@ -228,7 +225,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Ejecutamos la validación y capturamos la instancia de Openpay (o null).
         $openpay_instance = $validator->validateOpenpayCredentials($post_data);
 
-        $currency_is_valid = $validator->validateCurrency($allowed_currencies_for_country);
+        $currency_is_valid = $validator->validateCurrency($this->currencies);
 
         // Comprobamos si todas las validaciones pasaron.
         if ($openpay_instance && $currency_is_valid) {
@@ -319,19 +316,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
     public function admin_options()
     {
-        // validación de moneda
-        $currency_is_valid = $this->validateCurrency(); // Ahora el método existe en el Gateway
-
-        // mensaje de error si no es válido
-        $error_message = '';
-        if (!$currency_is_valid) {
-            $countryName = OpenpayUtils::getCountryName($this->country);
-            $currency = $this->currencies[0] ?? 'N/A';
-            $error_message = OpenpayUtils::getMessageError($countryName, $currency);
-        }
-
-        // Hacemos que la variable $currency_is_valid y $error_message estén disponibles dentro del archivo admin.php
-        include('templates/admin.php');
+        include_once('templates/admin.php');
     }
 
 
@@ -375,16 +360,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
     public function validateCurrency()
     {
-        // Cargar las propiedades más recientes (por si cambiaron y no se han guardado)
-        $this->setup_properties();
-
-        $allowed_currencies = $this->currencies; // $this->currencies se llena en setup_properties()
-        $store_currency = get_woocommerce_currency();
-
-        if (!in_array($store_currency, $allowed_currencies)) {
-            return false;
-        }
-        return true;
+        return in_array(get_woocommerce_currency(), $this->currencies);
     }
     public function isNullOrEmptyString()
     {
