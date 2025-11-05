@@ -42,7 +42,6 @@ class OpenpayWebhookService
      */
     public function getAllWebhooks(): array
     {
-        // Pedimos un límite alto (ej. 20) para evitar problemas de paginación.
         return $this->openpay->webhooks->getList(['limit' => 20]);
     }
 
@@ -64,7 +63,6 @@ class OpenpayWebhookService
             ]
         ];
 
-        // El método add() arrojará una excepción si falla.
         return $this->openpay->webhooks->add($webhook_data);
     }
 
@@ -78,14 +76,11 @@ class OpenpayWebhookService
     public function deleteWebhook(string $id)
     {
         try {
-            // Obtenemos el objeto webhook por su ID
             $webhook = $this->openpay->webhooks->get($id);
             if ($webhook) {
-                // Y llamamos al método delete() sobre ese objeto
                 $webhook->delete();
             }
         } catch (\Exception $e) {
-            // Relanzamos la excepción para que el orquestador (la pasarela) la maneje.
             throw new \Exception('Error al intentar eliminar el webhook ' . $id . ': ' . $e->getMessage());
         }
     }
@@ -100,10 +95,11 @@ class OpenpayWebhookService
      */
     public function reconcileWebhooks(string $target_url_pretty, string $target_url_simple): array
     {
-        // Derivar paths/queries de los objetivos
-        $target_path_pretty = parse_url($target_url_pretty, PHP_URL_PATH);
-        $target_path_simple = parse_url($target_url_simple, PHP_URL_PATH);
-        $target_query_simple = parse_url($target_url_simple, PHP_URL_QUERY);
+        // Esta es la parte de la URL que SIEMPRE identifica a nuestro webhook,
+        // sin importar el dominio o el subdirectorio.
+        $canonical_api_path = '/wc-api/Openpay_Stores';
+        $canonical_simple_path = '/index.php';
+        $canonical_simple_query = 'wc-api=Openpay_Stores';
 
         // Obtener todos los webhooks
         $all_webhooks = $this->getAllWebhooks();
@@ -115,45 +111,49 @@ class OpenpayWebhookService
         foreach ($all_webhooks as $webhook) {
             $webhook_path = parse_url($webhook->url, PHP_URL_PATH);
             $webhook_query = parse_url($webhook->url, PHP_URL_QUERY);
+            $webhook_url = $webhook->url;
 
-            // --- INICIO DE LOGS DE DEPURACIÓN (DESDE EL SERVICIO) ---
             $this->logger->info('--- COMPARANDO WEBHOOK ---');
-            $this->logger->info('Webhook URL: ' . $webhook->url);
-            $this->logger->info('Webhook Path (extraído): ' . $webhook_path);
-            $this->logger->info('Target Path (objetivo): ' . $target_path_pretty);
-            // --- FIN DE LOGS DE DEPURACIÓN ---
+            $this->logger->info('Webhook URL: ' . $webhook_url);
+            $this->logger->info('Target URL (Pretty): ' . $target_url_pretty);
+            $this->logger->info('Target URL (Simple): ' . $target_url_simple);
 
-            if ($webhook->url === $target_url_pretty) {
-                $this->logger->info('Resultado: Encontrado webhook activo (Pretty URL).');
+            // Verificación 1: ¿Es el webhook actual (coincidencia exacta)?
+            // Comparamos contra ambas URLs (pretty y simple) por si acaso.
+            if ($webhook_url === $target_url_pretty || $webhook_url === $target_url_simple) {
+                $this->logger->info('Resultado: Encontrado webhook activo (Coincidencia exacta).');
                 $current_webhook_found = $webhook;
-            } else {
-                // Compara si es un webhook "url pretty" de este plugin
-                $is_our_pretty_webhook = (strcasecmp(trim($webhook_path), trim($target_path_pretty)) === 0);
+            }
+            // Verificación 2: ¿Es "nuestro" webhook pero en otro dominio/subdirectorio (obsoleto)?
+            else {
+                // Comprobamos si el path TERMINA con nuestro endpoint canónico
+                // Usamos substr() para compatibilidad con PHP < 8 (str_ends_with es PHP 8+)
+                $is_our_pretty_webhook = (substr($webhook_path, -strlen($canonical_api_path)) === $canonical_api_path);
 
-                // Compara si es un webhook "url simple" de este plugin
-                $is_our_simple_webhook = (strcasecmp(trim($webhook_path), trim($target_path_simple)) === 0) && (strcasecmp(trim($webhook_query), trim($target_query_simple)) === 0);
+                // Comprobamos si es nuestra URL simple (el path debe terminar en index.php y el query debe coincidir)
+                $is_our_simple_webhook = (substr($webhook_path, -strlen($canonical_simple_path)) === $canonical_simple_path) &&
+                    (strcasecmp(trim($webhook_query), $canonical_simple_query) === 0);
 
                 if ($is_our_pretty_webhook || $is_our_simple_webhook) {
-                    $this->logger->info('Resultado: Encontrado webhook obsoleto. Marcando para borrar.');
+                    $this->logger->info('Resultado: Encontrado webhook obsoleto (Coincide endpoint pero no URL completa). Marcando para borrar.');
                     $old_webhooks_to_delete[] = $webhook;
                 } else {
-                    $this->logger->info('Resultado: Webhook ignorado (no coincide).');
+                    $this->logger->info('Resultado: Webhook ignorado (no coincide con el endpoint).');
                 }
             }
         }
 
-        // Actuar: Eliminar
+        // Elimina los webhooks obsoletos
         foreach ($old_webhooks_to_delete as $webhook_to_delete) {
             try {
                 $this->deleteWebhook($webhook_to_delete->id); //
                 $this->logger->info('Webhook obsoleto eliminado: ' . $webhook_to_delete->id);
             } catch (\Exception $e) {
-                // No es un error crítico, solo lo logueamos.
                 $this->logger->error('Error al intentar eliminar el webhook obsoleto ' . $webhook_to_delete->id . ': ' . $e->getMessage());
             }
         }
 
-        // Actuar: Crear o retornar
+        // Crear o retornar
         if (is_null($current_webhook_found)) {
             $this->logger->info('El webhook actual no existe. Creando uno nuevo...');
             $newWebhook = $this->createWebhook($target_url_pretty); //
