@@ -5,6 +5,7 @@ namespace OpenpayStores\Services;
 use Openpay\Data\OpenpayApi;
 use Openpay\Resources\OpenpayWebhook;
 use WC_Logger;
+use OpenpayStores\Includes\OpenpayStoresErrorHandler;
 
 class OpenpayWebhookService
 {
@@ -63,7 +64,11 @@ class OpenpayWebhookService
             ]
         ];
 
-        return $this->openpay->webhooks->add($webhook_data);
+        $openpay = $this->openpay;
+        $webhook = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use($openpay, $webhook_data) {
+            return $openpay->webhooks->add($webhook_data);
+         });
+        return $webhook;
     }
 
     /**
