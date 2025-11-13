@@ -39,6 +39,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $private_key;
     protected $pdf_url_base;
     public $images_dir;
+    protected $openpay;
 
 
     public function __construct()
@@ -74,6 +75,18 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->pdf_url_base = OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country);
         $this->deadline = $this->get_option('deadline');
         $this->iva = $this->country == 'CO' ? $this->get_option('iva') : 0;
+
+        // Inicializamos la API aquí, una sola vez.
+        if ($this->merchant_id && $this->private_key) {
+            $this->openpay = OpenpayClient::getInstance(
+                $this->merchant_id,
+                $this->private_key,
+                $this->country,
+                $this->is_sandbox
+            );
+        } else {
+            $this->openpay = null; // Es nulo si no hay credenciales
+        }
     }
     public function get_merchant_id()
     {
@@ -155,7 +168,12 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     {
         global $woocommerce;
         $order = wc_get_order($order_id);
-        $this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+        //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+
+        if (!$this->openpay) {
+            wc_add_notice(__('Error de configuración de Openpay: Faltan credenciales.', 'openpay_stores'), 'error');
+            return false;
+        }
 
         // Obtener el cliente -> si no existe agregar la información al cargo.
         $customer_service = new OpenpayCustomerService($this->openpay, $this->country, $this->is_sandbox);
@@ -314,7 +332,11 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 $transaction_id = $event->transaction->id;
                 $order_id_from_payload = $event->transaction->order_id ?? null;
 
-                $this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+                //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+
+                if (!$this->openpay) {
+                    throw new \Exception('El servicio de Openpay no está inicializado (faltan credenciales).');
+                }
 
                 // Valida si la transacción existe en Openpay
                 $charge = $this->openpay->charges->get($transaction_id);
