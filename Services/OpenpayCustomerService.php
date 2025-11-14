@@ -3,8 +3,8 @@ namespace OpenpayStores\Services;
 use OpenpayStores\Includes\OpenpayUtils;
 
 Class OpenpayCustomerService{
-    private $logger;
-    private $openpay;
+    public $logger;
+    public $openpay;
     private $country;
     private $sandbox;
 
@@ -20,7 +20,7 @@ Class OpenpayCustomerService{
         $this->logger->info('[OpenpayCustomerService.retrieveCustomer] start ');
         $customer_id = $this->getCustomerId();
         try {
-            if (\OpenpayStores\Includes\OpenpayUtils::isNullOrEmptyString($customer_id)) {
+            if (OpenpayUtils::isNullOrEmptyString($customer_id)) {
                 $this->logger->info('[OpenpayCustomerService.retrieveCustomer] => customer_id not exists - ' . $customer_id);
                 if (is_user_logged_in()) {
                     return $this->create($order);
@@ -76,7 +76,7 @@ Class OpenpayCustomerService{
             $this->logger->info('[OpenpayCustomerService.create] => customer_id - ' . $customer->id);
             $this->updateCustomerId($customer->id);
 
-            $this->logger->info('[OpenpayCustomerService.create] => customer_data - ' . $customer_data);
+            $this->logger->info('[OpenpayCustomerService.create] => customer_data - ' . json_encode($customer_data));
             $this->logger->info('[OpenpayCustomerService.create] => customer_id - ' . $customer->id);
 
             return $customer;
