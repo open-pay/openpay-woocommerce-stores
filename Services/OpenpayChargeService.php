@@ -14,12 +14,19 @@ class OpenpayChargeService
     private $customer_service;
     private $openpay;
 
+    private $transaction_id;
+
     public function __construct($openpay, $order, $customer_service)
     {
         $this->logger = wc_get_logger();
         $this->order = $order;
         $this->customer_service = $customer_service;
         $this->openpay = $openpay;
+    }
+
+    public function get_transaction_id()
+    {
+        return $this->transaction_id;
     }
 
     public function processOpenpayCharge($payment_settings)
@@ -35,11 +42,11 @@ class OpenpayChargeService
             $reference = $charge->payment_method->reference;
             $barcode_url = $charge->payment_method->barcode_url;
             $due_date = $charge->due_date;
-            $this->logger->info('URL PDF:'. $payment_settings['pdf_url_base']);
-            $pdf_url = $payment_settings['pdf_url_base'].'/'.$payment_settings['merchant_id']. "/".'transaction'."/".$charge->id;
+            $this->logger->info('URL PDF:' . $payment_settings['pdf_url_base']);
+            $pdf_url = $payment_settings['pdf_url_base'] . '/' . $payment_settings['merchant_id'] . "/" . 'transaction' . "/" . $charge->id;
             //WC()->session->set('pdf_url', $pdf_url);
             //Save data for the ORDER
-            if ($payment_settings->sandbox) {
+            if ($payment_settings["sandbox"]) {
                 $customer_id = get_user_meta(get_current_user_id(), '_openpay_customer_sandbox_id', true);
             } else {
                 $customer_id = get_user_meta(get_current_user_id(), '_openpay_customer_id', true);
@@ -53,15 +60,16 @@ class OpenpayChargeService
         }
     }
 
-    public function create($openpay_customer, $charge_request) {
+    public function create($openpay_customer, $charge_request)
+    {
         try {
             if (is_user_logged_in()) {
                 return $openpay_customer->charges->create($charge_request);
-            }else{
+            } else {
                 return $this->openpay->charges->create($charge_request);
             }
         } catch (Exception $e) {
-             Throw new Exception ($e);
+            throw new Exception($e);
         }
     }
 
@@ -69,7 +77,7 @@ class OpenpayChargeService
     {
         date_default_timezone_set('America/Mexico_City');
         $this->logger->info('collectChargeData DATE - ' . date('d/m/Y == H:i:s'));
-        $due_date = date('Y-m-d\TH:i:s', strtotime('+ '.$payment_settings['deadline'].' hours'));
+        $due_date = date('Y-m-d\TH:i:s', strtotime('+ ' . $payment_settings['deadline'] . ' hours'));
 
         $charge_request = array(
             "method" => "store",
@@ -85,8 +93,8 @@ class OpenpayChargeService
             $charge_request["customer"] = $this->customer_service->collectCustomerData($this->order);
         }
 
-        if ($payment_settings->country === 'CO') {
-            $charge_request['iva'] = $payment_settings->iva;
+        if ($payment_settings["country"] === 'CO') {
+            $charge_request['iva'] = $payment_settings["iva"];
         }
 
         return $charge_request;
@@ -112,12 +120,3 @@ class OpenpayChargeService
     }
 
 }
-
-
-
-
-
-
-
-
-
