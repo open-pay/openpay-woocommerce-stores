@@ -6,7 +6,9 @@
         "phpunit/phpunit": "^9.5",
         "yoast/phpunit-polyfills": "^2.0",
         "squizlabs/php_codesniffer": "*",
-        "mockery/mockery": "^1.6"
+        "mockery/mockery": "^1.6",
+        "brain/monkey": "^2.6",
+        "wp-phpunit/wp-phpunit": "^6.8"
     },
     "autoload": {
         "psr-4": {
