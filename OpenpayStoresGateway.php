@@ -39,6 +39,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     protected $private_key;
     protected $pdf_url_base;
     public $images_dir;
+    protected $openpay;
 
 
     public function __construct()
@@ -74,6 +75,18 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->pdf_url_base = OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country);
         $this->deadline = $this->get_option('deadline');
         $this->iva = $this->country == 'CO' ? $this->get_option('iva') : 0;
+
+        // Inicializamos la API aquí, una sola vez.
+        if ($this->merchant_id && $this->private_key) {
+            $this->openpay = OpenpayClient::getInstance(
+                $this->merchant_id,
+                $this->private_key,
+                $this->country,
+                $this->is_sandbox
+            );
+        } else {
+            $this->openpay = null; // Es nulo si no hay credenciales
+        }
     }
     public function get_merchant_id()
     {
@@ -155,7 +168,12 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     {
         global $woocommerce;
         $order = wc_get_order($order_id);
-        $this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+        //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+
+        if (!$this->openpay) {
+            wc_add_notice(__('Error de configuración de Openpay: Faltan credenciales.', 'openpay_stores'), 'error');
+            return false;
+        }
 
         // Obtener el cliente -> si no existe agregar la información al cargo.
         $customer_service = new OpenpayCustomerService($this->openpay, $this->country, $this->is_sandbox);
@@ -299,22 +317,68 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     }
     public function webhook_handler()
     {
-        // Responde inmediatamente para que Openpay no espere
-        @header('HTTP/1.1 200 OK');
-
         $payload = file_get_contents('php://input');
+        $this->logger->debug('[Webhook] Payload ' . $payload);
 
-        // TODO:
-        // Aquí iría la lógica para verificar la firma del webhook de Openpay (MUY IMPORTANTE para producción)
-        // if ( ! $this->is_valid_signature($payload, $_SERVER['HTTP_OPENPAY_SIGNATURE']) ) {
-        //     $this->logger->warning('Petición de webhook con firma inválida recibida.');
-        //     exit; // No procesar si no es válido
-        // }
+        $event = json_decode($payload);
 
-        // Pon el procesamiento en la cola de WooCommerce para que se ejecute en segundo plano
-        WC()->queue()->add('openpay_stores_process_webhook', array('payload' => $payload));
+        // Verificamos si es una notificación de pago (tiene 'transaction->id').
+        // Si el payload es "" o "{}", $event será null o un objeto vacío, y esto será 'false'.
+        if (isset($event, $event->transaction, $event->transaction->id)) {
 
-        exit; // Termina la ejecución para asegurar una respuesta limpia
+            // Si SÍ lo tiene, es una NOTIFICACIÓN. Procedemos a validar con la API.
+            $this->logger->info('[Webhook] Payload de notificación detectado. Validando con API...');
+            try {
+                $transaction_id = $event->transaction->id;
+                $order_id_from_payload = $event->transaction->order_id ?? null;
+
+                //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+
+                if (!$this->openpay) {
+                    throw new \Exception('El servicio de Openpay no está inicializado (faltan credenciales).');
+                }
+
+                // Valida si la transacción existe en Openpay
+                $charge = $this->openpay->charges->get($transaction_id);
+
+                // Verificación cruzada
+                if ($charge->order_id != $order_id_from_payload) {
+                    throw new \Exception(
+                        sprintf(
+                            'Discrepancia de Order ID. Payload: %s. API: %s',
+                            $order_id_from_payload,
+                            $charge->order_id
+                        )
+                    );
+                }
+
+                // La transacción existe Poner en la cola.
+                $this->logger->info('[Webhook] Transacción ' . $transaction_id . ' validada. Poniendo en cola.');
+                @header('HTTP/1.1 200 OK');
+                WC()->queue()->add('openpay_stores_process_webhook', array('payload' => $payload));
+
+                exit;
+
+            } catch (\Exception $e) {
+                // FALLO DE VALIDACIÓN (es un impostor)
+                $this->logger->error('[Webhook] ¡Validación de notificación fallida! Razón: ' . $e->getMessage());
+                @header('HTTP/1.1 401 Unauthorized');
+                exit('Validation Failed');
+            }
+
+        } else {
+
+            // Si NO tiene 'transaction->id'.
+            // Esto significa que es la llamada de VERIFICACIÓN (payload vacío o {})
+            // o un evento que no nos interesa (sin transacción).
+            // En cualquier caso, respondemos 200 OK para que el webhook se cree exitosamente.
+
+            $this->logger->info('[Webhook] Payload no es una notificación (probablemente verificación de registro). Respondiendo 200 OK.');
+
+            @header('HTTP/1.1 200 OK');
+            exit;
+        }
+
     }
 
     public function admin_options()
