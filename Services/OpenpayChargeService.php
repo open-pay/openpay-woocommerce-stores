@@ -17,6 +17,8 @@ class OpenpayChargeService
     private $openpay;
     private $transaction_id;
 
+    private $transaction_id;
+
     public function __construct($openpay, $order, $customer_service)
     {
         $this->logger = wc_get_logger();
@@ -132,12 +134,3 @@ class OpenpayChargeService
     }
 
 }
-
-
-
-
-
-
-
-
-
