@@ -6,6 +6,7 @@ use OpenpayStores\Includes\OpenpayClient;
 use WC_Admin_Settings;
 use WC_Logger;
 use Openpay\Data\OpenpayApi;
+use OpenpayStores\Includes\OpenpayStoresErrorHandler;
 
 // No debe heredar de WC_Payment_Gateway
 class OpenpayPaymentSettingsValidation
@@ -73,7 +74,10 @@ class OpenpayPaymentSettingsValidation
      */
     protected function createOpenpayApiInstance(string $merchant_id, string $private_key, string $country, bool $is_sandbox): OpenpayApi
     {
-        return OpenpayClient::getInstance($merchant_id, $private_key, $country, $is_sandbox);
+        $openpayClient = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use($merchant_id, $private_key, $country, $is_sandbox) {
+            return OpenpayClient::getInstance($merchant_id, $private_key, $country, $is_sandbox);
+         });
+         return $openpayClient;
     }
 
     /**

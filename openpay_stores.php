@@ -2,6 +2,7 @@
 
 use OpenpayStores\OpenpayStoresGateway;
 use OpenpayStores\Includes\OpenpayStoresGateway_Blocks_Support;
+use OpenpayStores\Services\OpenpayWebhookProcessorService;
 
 /**
  * Plugin Name: Openpay Stores Plugin
@@ -76,6 +77,11 @@ function OpenpayStoresGateway_init_gateway_class()
     if (!class_exists('WC_Payment_Gateway')) {
         return;
     }
+
+    // Esto asegura que el "trabajador" (Processor)
+    // se registre en CADA carga de página, incluyendo WP-Cron.
+    new OpenpayWebhookProcessorService();
+
     // Este es el único filtro que necesitas para registrar la pasarela
     add_filter('woocommerce_payment_gateways', 'OpenpayStoresGateway_add_gateway');
 }
@@ -127,17 +133,18 @@ function OpenpayStoresGateway_blocks_support()
     );
 }
 
-function payment_scripts(){
+function payment_scripts()
+{
     // Validamos si es el checkout por bloques
     global $post;
-    if($post && has_block( 'woocommerce/checkout', $post ) || is_checkout()) {
-        wp_enqueue_style('openpay-store-checkout-style', plugins_url('assets/css/openpay-store-checkout-style.css', __FILE__));    
+    if ($post && has_block('woocommerce/checkout', $post) || is_checkout()) {
+        wp_enqueue_style('openpay-store-checkout-style', plugins_url('assets/css/openpay-store-checkout-style.css', __FILE__));
     }
-    
-    if (!is_checkout() ) {
+
+    if (!is_checkout()) {
         return;
     }
-    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array( 'jquery' ), '', true);
+    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array('jquery'), '', true);
 }
 
 //Filtro para personalizar plantillas de WooCommerce
