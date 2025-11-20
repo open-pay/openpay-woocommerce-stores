@@ -1,7 +1,8 @@
 <?php
 namespace OpenpayStores\Includes;
 
-class OpenpayStoresErrorManager {
+class OpenpayStoresErrorManager
+{
     private static $errors = [
         1000 => [
             'clientError' => 'Servicio no disponible.',
@@ -47,16 +48,17 @@ class OpenpayStoresErrorManager {
         ],
     ];
 
-    public static function getErrorMessages($code) {
+    public static function getErrorMessages($code)
+    {
         if (isset(self::$errors[$code])) {
-           return self::$errors[$code];
-       }
+            return self::$errors[$code];
+        }
 
-       return [
-           'clientError' => 'Ha ocurrido un error inesperado',
-           'adjustedError' => 'Ha ocurrido un error inesperado',
-           'orderDetailError' => 'Ha ocurrido un error inesperado',
-           'logError' => 'Ha ocurrido un error inesperado'
-       ];
+        return [
+            'clientError' => 'Ha ocurrido un error inesperado',
+            'adjustedError' => 'Ha ocurrido un error inesperado',
+            'orderDetailError' => 'Ha ocurrido un error inesperado',
+            'logError' => 'Ha ocurrido un error inesperado'
+        ];
     }
 }
