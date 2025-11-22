@@ -264,8 +264,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 // Llamamos al método para verificar o crear el webhook.
                 $this->ensureWebhookExists($openpay_instance);
 
-                // Añadir un mensaje de éxito para el webhook (en verde).
-                \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay verificado y configurado correctamente.', 'openpay_stores'));
             } catch (\Exception $e) {
                 // Si la creación del webhook falla, mostramos un error, pero los ajustes ya se guardaron.
                 \WC_Admin_Settings::add_error('Ajustes guardados, pero hubo un error al configurar el webhook: ' . esc_html($e->getMessage()));
@@ -305,7 +303,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
             if ($status === 'created') {
                 \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay configurado correctamente.', 'openpay_stores'));
-            } else {
+            } elseif ($status === 'found') {
                 \WC_Admin_Settings::add_message(esc_html__('Webhook de Openpay verificado (ya existía).', 'openpay_stores'));
             }
         } catch (\Exception $e) {
