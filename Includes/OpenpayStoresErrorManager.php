@@ -11,7 +11,7 @@ class OpenpayStoresErrorManager
             'logError' => 'Internal server error, contact support'
         ],
         1003 => [
-            'clientError' => 'Asegurar certificado seguridad.',
+            'clientError' => 'Petición con parámetros incorrectos.',
             'adjustedError' => 'La conexión segura no pudo establecerse. Hubo un problema al intentar comunicar tu pago. Por favor, intenta de nuevo en unos minutos.',
             'orderDetailError' => 'La instancia no tiene certificado de seguridad para https ó no estan disponibles lo puertos válidos',
             'logError' => 'Parameters look valid but request failed'
