@@ -47,8 +47,6 @@ class OpenpayClient
 		foreach ($ipSources as $source) {
 			if (!empty($source)) {
 				$ipAdress = $source;
-				if ($logger)
-					$logger->debug('[OpenpayClient.getClientIp] Fuente de IP encontrada: ' . $ipAdress);
 
 				// Si es una lista (de proxy), tomar la primera IP VÁLIDA
 				$ipList = explode(",", $ipAdress);
@@ -80,9 +78,6 @@ class OpenpayClient
 				$ipAdress = '127.0.0.1';
 			}
 		}
-
-		if ($logger)
-			$logger->debug('[OpenpayClient.getClientIp] IP final que se usará: ' . $ipAdress);
 
 		return $ipAdress;
 	}
