@@ -11,7 +11,12 @@
   <div class="step-guide">
     <div class="step-guide__header">
     <div class="step-guide__logo-right">
+        <?php if($this->country == 'MX'): ?>
         <img src="<?= $this->images_dir ?>/newcheckout/paynet-logo.png" alt="Paynet" class="step-guide__logo-img-right" width="100px">
+        <?php endif; ?>
+        <?php if($this->country == 'CO'): ?>
+        <img src="<?= $this->images_dir ?>/newcheckout/efecty-logo.png" alt="efecty" class="step-guide__logo-img-right" width="100px">
+        <?php endif; ?>
       </div>
       <div class="step-guide__logo-left">
         <img src="<?= $this->images_dir ?>/newcheckout/icon-lock.svg" alt="Openpay" class="step-guide__logo-img">
@@ -50,9 +55,11 @@
       </div>
     </div>
 
-    <div class="step-guide__footer">
-      <a class="step-guide__link">¿En dónde puedo pagar?</a>
-    </div>
+      <?php if($this->country == 'MX'): ?>
+        <div class="step-guide__footer">
+          <a class="step-guide__link">¿En dónde puedo pagar?</a>
+        </div>
+      <?php endif; ?>
 </div>
 
   <div id="stepGuideModal" class="step-guide__modal">
