@@ -187,7 +187,8 @@ add_filter('woocommerce_locate_template', function ($template, $template_name, $
 
     // Lista de plantillas permitidas
     $allowed_templates = array(
-        'emails/customer-on-hold-order.php'
+        'emails/customer-on-hold-order.php',
+        'checkout/thankyou.php'
     );
 
     if (!in_array($template_name, $allowed_templates)) {
