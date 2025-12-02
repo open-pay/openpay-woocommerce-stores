@@ -56,19 +56,24 @@ class OpenpayStoresErrorHandler
 
     public static function catchOpenpayStoreError($callback, $order_id = null, $customer_id = null)
     {
+        $logger = wc_get_logger();
         try {
             return $callback();
         } catch (OpenpayApiConnectionError $e) {
+            $logger->info('[OpenpayStoresErrorHandler.catchOpenpayStoreError - OpenpayApiConnectionError] ');
             self::handleOpenpayStorePluginException($e, $order_id, $customer_id);
             $openpayErrorManager = new OpenpayStoresErrorManager();
             $errorMessage = $openpayErrorManager::getErrorMessages($e->getCode());
             throw new Exception($errorMessage['clientError'], $e->getCode());
         } catch (OpenpayApiTransactionError $e) {
+            $logger->info('[OpenpayStoresErrorHandler.catchOpenpayStoreError - OpenpayApiTransactionError] ');
             self::handleOpenpayStorePluginException($e, $order_id, $customer_id);
             $openpayErrorManager = new OpenpayStoresErrorManager();
             $errorMessage = $openpayErrorManager::getErrorMessages($e->getCode());
             throw new Exception($errorMessage['clientError'], $e->getCode());
         } catch (OpenpayApiError $e) {
+            $logger->info('[OpenpayStoresErrorHandler.catchOpenpayStoreError - OpenpayApiError] ');
+            $logger->info('[OpenpayStoresErrorHandler.catchOpenpayStoreError]' . json_encode($e));
             self::handleOpenpayStorePluginException($e, $order_id, $customer_id);
             $openpayErrorManager = new OpenpayStoresErrorManager();
             $errorMessage = $openpayErrorManager::getErrorMessages($e->getCode());
