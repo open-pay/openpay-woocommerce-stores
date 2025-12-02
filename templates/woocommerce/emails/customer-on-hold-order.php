@@ -20,17 +20,22 @@ $pdf_url = $order->get_meta('_pdf_url');
 $openpay_barcode_url = $order->get_meta('_openpay_barcode_url');
 $openpay_reference = $order->get_meta('_openpay_reference');
 $openpay_due_date = $order->get_meta('_due_date');
-
+$country= $order->get_meta('_country');
 
 // Formatear fecha límite
 $due_date_formatted = '';
 if ($openpay_due_date) {
     // Crear objeto DateTime con la zona horaria incluida en la fecha
     $date = new DateTime($openpay_due_date);
-    // Mantener la hora en la zona horaria original (América/México)
-    $date->setTimezone(new DateTimeZone('America/Mexico_City'));
-    // Formatear la fecha en español
-    $due_date_formatted = date_i18n('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp());
+
+    // Definir la zona horaria según el país
+    $timezone_name = ($country == 'CO') ? 'America/Bogota' : 'America/Mexico_City';
+    $timezone = new DateTimeZone($timezone_name);
+
+    // Mantener la hora en la zona horaria original (América/México o Colombia)
+    $date->setTimezone($timezone);
+    // Formatear la fecha en español forzando la zona horaria con wp_date
+    $due_date_formatted = wp_date('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp(), $timezone);
 }
 
 // Obtener productos del pedido
