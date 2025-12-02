@@ -46,6 +46,12 @@ class OpenpayStoresErrorManager
             'orderDetailError' => 'Hubo algún conflicto ó fallo alguna condición',
             'logError' => 'Could not connect with webhook service, verify URL Service responded with an error on this moment. Please try again later'
         ],
+        1012 => [
+            'clientError' => 'El monto ingresado es demasiado alto. El monto máximo permitido es de $29,999.00',
+            'adjustedError' => 'El monto deber ser menor a 29999',
+            'orderDetailError' => 'El monto deber ser menor a 29999',
+            'logError' => 'The amount must be less than 29999'
+        ],
     ];
 
     public static function getErrorMessages($code)

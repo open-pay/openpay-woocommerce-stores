@@ -1,9 +1,27 @@
+/*Clean View*/
+#payment .payment_methods li img {
+    max-height: unset !important;
+    float: unset !important;
+}
+
 @font-face {
     font-family: 'BentonBBVA';
     src: url('../Fonts/BentonBBVA/BentonSansBBVA-Book.ttf');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
+}
+
+.openpay-logos {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 0 15px;
+    justify-content: center;
+    align-items: center;
+}
+
+.openpay-logos img{
+    height: 2.4em;
 }
 
 .openpay-store-checkout-style {
@@ -46,7 +64,7 @@ margin-right: 8px;
 }
 
 .step-guide__logo-img-right {
-height: 32px;
+width: 7em;
 }
 
 .step-guide__security-text {
