@@ -37,12 +37,21 @@ const Form = ( props ) => {
                 <div className="step-guide">
                     <div className="step-guide__header">
                         <div className="step-guide__logo-right">
-                            <img
-                            src={settings.images_dir + `/newcheckout/paynet-logo.png`}
-                            alt="Paynet"
-                            className="step-guide__logo-img-right"
-                            width="100px"
-                            />
+                            { settings.country == 'MX' ?
+                                <img
+                                src={settings.images_dir + `/newcheckout/paynet-logo.png`}
+                                alt="Paynet"
+                                className="step-guide__logo-img-right"
+                                width="100px"
+                                />
+                              : null }
+                            { settings.country == 'CO' ?
+                                <img
+                                    src={settings.images_dir + `/newcheckout/efecty-logo.png`}
+                                    alt="Paynet"
+                                    className="step-guide__logo-img-right"
+                                />
+                                : null }
                         </div>
                         <div className="step-guide__logo-left">
                             <img
@@ -107,10 +116,13 @@ const Form = ( props ) => {
                 </div>
             </div>
 
+        { settings.country == 'MX' ?
             <div className="step-guide__footer">
                 <a className="step-guide__link" onClick={onOpen}>¿En dónde puedo pagar?</a>
             </div>
+        : null }
         </div>
+
 
         { isOpen ?
         <div id="stepGuideModal" className="step-guide__modal step-guide__modal--active">

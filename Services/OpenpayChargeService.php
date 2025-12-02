@@ -73,10 +73,12 @@ class OpenpayChargeService
                  return $charge;
                 //return $openpay_customer->charges->create($charge_request);
             } else {
+                $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Inicio');
                 $openpay = $this->openpay;
                 $charge = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use ($openpay, $charge_request, $order_id) {
                     return $openpay->charges->create($charge_request);
                 }, $order_id);
+                $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Fin');
                 return $charge;
                 //return $this->openpay->charges->create($charge_request);
             }
