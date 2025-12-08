@@ -1,13 +1,11 @@
 <?php
 
-// Asegúrate de que el namespace coincida con tu estructura de 'tests'
 namespace OpenpayStores\Tests\Unit\Services;
 
-// Clases que vamos a testear o simular
 use PHPUnit\Framework\TestCase;
 use OpenpayStores\Services\OpenpayWebhookService;
 use Openpay\Data\OpenpayApi;
-use Openpay\Resources\OpenpayWebhook; // Importante para simular el objeto webhook
+use Openpay\Resources\OpenpayWebhook;
 use WC_Logger;
 
 /**
@@ -55,9 +53,6 @@ class OpenpayWebhookServiceTest extends TestCase
     /**
      * Prueba el escenario donde no hay webhooks y se debe crear uno.
      */
-    /**
-     * Prueba el escenario donde no hay webhooks y se debe crear uno.
-     */
     public function test_reconcileWebhooks_creates_new_webhook_if_none_exist()
     {
         // 1. ARRANGE (Preparar)
@@ -68,7 +63,6 @@ class OpenpayWebhookServiceTest extends TestCase
             ->willReturn([]);
 
         // B. Configuramos el mock del webhook que será DEVUELTO
-        // ¡ESTA ES LA CORRECCIÓN!
         // El SDK de Openpay usa métodos mágicos, así que simulamos __get
         $mockNewWebhook = $this->createMock(OpenpayWebhook::class);
         $mockNewWebhook->method('__get')
@@ -87,15 +81,11 @@ class OpenpayWebhookServiceTest extends TestCase
         // D. Instanciamos nuestro servicio (el Sujeto de Pruebas)
         $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
 
-
         // 2. ACT (Actuar)
-
         // Llamamos al método que queremos probar
         $result = $service->reconcileWebhooks($target_url, $target_url_simple);
 
-
         // 3. ASSERT (Verificar)
-
         // Verificamos que el resultado es el que esperamos
         $this->assertEquals('created', $result['status']);
         $this->assertEquals('wh_test_12345', $result['id']); // Esta línea ahora debería funcionar
@@ -157,14 +147,10 @@ class OpenpayWebhookServiceTest extends TestCase
         // E. Instanciamos nuestro servicio
         $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
 
-
         // 2. ACT (Actuar)
-
         $result = $service->reconcileWebhooks($target_url_pretty, $target_url_simple);
 
-
         // 3. ASSERT (Verificar)
-
         // Verificamos que el resultado es el que esperamos
         $this->assertEquals('created', $result['status']);
         $this->assertEquals('wh_nuevo_1234', $result['id']);
@@ -207,14 +193,10 @@ class OpenpayWebhookServiceTest extends TestCase
         // E. Instanciamos nuestro servicio
         $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
 
-
         // 2. ACT (Actuar)
-
         $result = $service->reconcileWebhooks($target_url_pretty, $target_url_simple);
 
-
         // 3. ASSERT (Verificar)
-
         $this->assertEquals('found', $result['status']);
         $this->assertEquals('wh_activo_9999', $result['id']);
     }
@@ -253,14 +235,10 @@ class OpenpayWebhookServiceTest extends TestCase
         // E. Instanciamos el servicio
         $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
 
-
         // 2. ACT (Actuar)
-
         $result = $service->findWebhookByUrl($target_url);
 
-
         // 3. ASSERT (Verificar)
-
         // Verificamos que el resultado no sea null
         $this->assertNotNull($result);
         // Verificamos que sea el objeto exacto que simulamos
@@ -288,14 +266,10 @@ class OpenpayWebhookServiceTest extends TestCase
         // C. Instanciamos el servicio
         $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
 
-
         // 2. ACT (Actuar)
-
         $result = $service->findWebhookByUrl($target_url);
 
-
         // 3. ASSERT (Verificar)
-
         // Verificamos que el resultado sea null
         $this->assertNull($result);
     }
@@ -326,4 +300,119 @@ class OpenpayWebhookServiceTest extends TestCase
         ];
     }
 
+    /**
+     * Prueba que deleteWebhook lanza una excepción formateada si la API falla.
+     * Cubre: catch (\Exception $e) { throw new \Exception(...); }
+     */
+    public function test_deleteWebhook_throws_custom_exception_on_api_failure()
+    {
+        // 1. ARRANGE
+        $webhookId = 'wh_fail_123';
+
+        // Simulamos que al buscar el webhook para borrarlo, la API falla
+        $this->mockWebhookResource->method('get')
+            ->with($this->equalTo($webhookId))
+            ->willThrowException(new \Exception('Error de conexión simulado'));
+
+        $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
+
+        // 2. ASSERT (Esperamos la excepción)
+        $this->expectException(\Exception::class);
+        // Verificamos que el mensaje sea el que concatenaste en tu código
+        $this->expectExceptionMessage('Error al intentar eliminar el webhook wh_fail_123: Error de conexión simulado');
+
+        // 3. ACT
+        $service->deleteWebhook($webhookId);
+    }
+
+    /**
+     * Prueba que un webhook ajeno (URL no coincide con el plugin) es ignorado.
+     * Cubre la línea del ELSE: "Webhook ignorado (no coincide con el endpoint)".
+     */
+    public function test_reconcileWebhooks_ignores_unrelated_webhooks()
+    {
+        // 1. ARRANGE
+        $target_url = 'https://mi-sitio.com/wc-api/Openpay_Stores';
+        $target_url_simple = 'https://mi-sitio.com/index.php?wc-api=Openpay_Stores';
+
+        // URL AJENA
+        $alienUrl = 'https://google.com/foo/bar';
+
+        // Usamos stdClass para el webhook
+        $alienWebhook = new \stdClass();
+        $alienWebhook->id = 'wh_alien_999';
+        $alienWebhook->url = $alienUrl;
+
+        // Configuramos la lista
+        $this->mockWebhookResource->method('getList')->willReturn([$alienWebhook]);
+
+        // Mock de creación (necesario para que el flujo no se rompa después)
+        $mockNewWebhook = $this->createMock(OpenpayWebhook::class);
+        $mockNewWebhook->method('__get')->with('id')->willReturn('wh_new');
+        $this->mockWebhookResource->method('add')->willReturn($mockNewWebhook);
+
+        // En lugar de fallar en el primer log, capturamos TODOS los logs en un array.
+        $capturedLogs = [];
+        $this->mockLogger->method('info')->will($this->returnCallback(function ($message) use (&$capturedLogs) {
+            $capturedLogs[] = $message;
+            return true;
+        }));
+
+        $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
+
+        // 2. ACT
+        $service->reconcileWebhooks($target_url, $target_url_simple);
+
+        // 3. ASSERT MANUAL
+        // Buscamos si alguno de los mensajes capturados es el que esperamos
+        $found = false;
+        foreach ($capturedLogs as $log) {
+            if (strpos($log, 'Webhook ignorado') !== false) {
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'El logger no recibió el mensaje: "Webhook ignorado". Logs recibidos: ' . json_encode($capturedLogs));
+    }
+
+    /**
+     * Prueba que si falla la eliminación de un webhook obsoleto, se registra en el log.
+     * Cubre: catch (\Exception $e) { $this->logger->error('Error al intentar eliminar...'); }
+     */
+    public function test_reconcileWebhooks_logs_error_when_deletion_fails()
+    {
+        // 1. ARRANGE
+        $target_url = 'https://nuevo-sitio.com/wc-api/Openpay_Stores';
+
+        // Simulamos un webhook obsoleto (dominio viejo, path correcto)
+        $obsoleteUrl = 'https://viejo-sitio.com/wc-api/Openpay_Stores';
+        $mockObsoleteWebhook = $this->createMock(OpenpayWebhook::class);
+        $mockObsoleteWebhook->method('__get')->willReturnMap([
+            ['url', $obsoleteUrl],
+            ['id', 'wh_obsoleto_fail']
+        ]);
+
+        $this->mockWebhookResource->method('getList')->willReturn([$mockObsoleteWebhook]);
+
+        // CLAVE: Cuando el código llame a deleteWebhook -> get('wh_obsoleto_fail'), lanzamos excepción
+        $this->mockWebhookResource->method('get')
+            ->with('wh_obsoleto_fail')
+            ->willThrowException(new \Exception('Fallo al borrar'));
+
+        // Permitimos que continúe y cree el nuevo
+        $mockNewWebhook = $this->createMock(OpenpayWebhook::class);
+        $mockNewWebhook->method('__get')->with('id')->willReturn('wh_new');
+        $this->mockWebhookResource->method('add')->willReturn($mockNewWebhook);
+
+        // EXPECTATIVA: El logger debe registrar un ERROR (no info) capturando la excepción
+        $this->mockLogger->expects($this->once())
+            ->method('error')
+            ->with($this->stringContains('Error al intentar eliminar el webhook obsoleto'));
+
+        $service = new OpenpayWebhookService($this->mockOpenpayApi, $this->mockLogger);
+
+        // 2. ACT
+        $service->reconcileWebhooks($target_url, 'https://simple.url');
+    }
 }
