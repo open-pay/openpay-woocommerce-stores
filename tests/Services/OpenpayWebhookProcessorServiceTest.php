@@ -2,315 +2,422 @@
 
 use OpenpayStores\Services\OpenpayWebhookProcessorService;
 
-/**
- * Clase de Pruebas UNITARIAS para OpenpayWebhookProcessorService.
- *
- * Esta clase NO USA FACTORÍAS. Prueba la lógica de negocio
- * en los métodos privados usando un mock de WC_Order.
- *
- * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService
- */
 class OpenpayWebhookProcessorServiceTest extends \WP_UnitTestCase
 {
-    /**
-     * @var OpenpayWebhookProcessorService
-     */
-    private $service;
+    /** @var TestableOpenpayWebhookProcessorService */
+    private $processor_mocked;
 
-    /**
-     * @var \WC_Logger|\PHPUnit\Framework\MockObject\MockObject
-     */
+    /** @var \PHPUnit\Framework\MockObject\MockObject */
     private $mock_logger;
 
-    /**
-     * @var \WC_Order|\PHPUnit\Framework\MockObject\MockObject
-     */
-    private $mock_order;
+    /** @var \PHPUnit\Framework\MockObject\MockObject */
+    private $mock_openpay_api;
 
-    /**
-     * Configuración inicial para cada prueba.
-     */
+    /** @var int */
+    private $order_id;
+
+    /** @var WC_Order */
+    private $order;
+
     public function setUp(): void
     {
         parent::setUp();
 
-        // 1. Mock del Logger
+        // 1. Crear Orden
+        $this->order = \WC_Helper_Order::create_order();
+        $this->order_id = $this->order->get_id();
+        $this->order->set_status('on-hold');
+        $this->order->save();
+
+        // 2. Mocks
         $this->mock_logger = $this->createMock(\WC_Logger::class);
 
-        // 2. Mock de WC_Order
-        // Creamos un mock que podemos reutilizar en todas las pruebas
-        $this->mock_order = $this->createMock(\WC_Order::class);
+        $this->mock_openpay_api = $this->getMockBuilder(\stdClass::class)
+            ->addMethods(['customers', 'charges'])
+            ->getMock();
 
-        // 3. Instanciar el Servicio
-        $this->service = new OpenpayWebhookProcessorService();
+        $this->mock_openpay_api->customers = $this->getMockBuilder(\stdClass::class)
+            ->addMethods(['get'])
+            ->getMock();
 
-        // 4. Inyección de Dependencia (Logger)
-        $reflection = new \ReflectionClass($this->service);
+        $this->mock_openpay_api->charges = $this->getMockBuilder(\stdClass::class)
+            ->addMethods(['get'])
+            ->getMock();
+
+        // 3. Instancia Mockeada (Para probar lógica de negocio - Imágenes 1, 2, 3)
+        $this->processor_mocked = new TestableOpenpayWebhookProcessorService();
+        $this->processor_mocked->setMockApi($this->mock_openpay_api);
+
+        // Inyectar Logger
+        $reflection = new \ReflectionClass($this->processor_mocked);
         $property = $reflection->getProperty('logger');
         $property->setAccessible(true);
-        $property->setValue($this->service, $this->mock_logger);
+        $property->setValue($this->processor_mocked, $this->mock_logger);
     }
 
     /**
-     * Prueba la lógica de 'charge.succeeded'
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_succeeded
+     * Helper para crear un payload JSON válido para las pruebas.
+     *
+     * @param string $type El tipo de evento (ej. 'charge.succeeded')
+     * @param string|null $customer_id ID del cliente (opcional)
+     * @return string JSON encodeado
      */
-    public function test_handle_payment_succeeded()
+    private function create_valid_payload($type, $customer_id = null)
     {
-        // 1. Preparación: Configurar el mock de la orden
-        $this->mock_order->method('is_paid')->willReturn(false);
-
-        // Esperamos que se llame a 'add_order_note'
-        $this->mock_order->expects($this->once())
-            ->method('add_order_note')
-            ->with($this->stringContains('Pago en tiendas completado (ID Transacción: txn_abc123)'));
-
-        // Esperamos que se llame a 'payment_complete'
-        $this->mock_order->expects($this->once())
-            ->method('payment_complete')
-            ->with('txn_abc123');
-
-        // 2. Crear el payload del evento
-        $event = $this->get_webhook_event('charge.succeeded', 123, 'txn_abc123');
-
-        // 3. Ejecución: Probar el método privado usando Reflection
-        $method = $this->get_accessible_method('handle_payment_succeeded');
-        $method->invoke($this->service, $this->mock_order, $event);
+        return json_encode([
+            'type' => $type,
+            'event_date' => '2025-11-12T12:00:00',
+            'transaction' => [
+                'method' => 'store',
+                'id' => 'tr_123',
+                'order_id' => $this->order_id,
+                'customer_id' => $customer_id
+            ]
+        ]);
     }
 
-    /**
-     * Prueba que 'charge.succeeded' se ignore si la orden ya está pagada.
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_succeeded
-     */
-    public function test_handle_payment_succeeded_already_paid()
+    public function test_handle_webhook_empty_or_invalid_payload()
     {
-        // 1. Preparación: Configurar el mock
-        $this->mock_order->method('is_paid')->willReturn(true); // La orden YA está pagada
-
-        // Esperamos que NO se llame a payment_complete
-        $this->mock_order->expects($this->never())->method('payment_complete');
-
-        // Esperamos que el log registre el mensaje
-        $this->mock_logger->expects($this->once())
-            ->method('info')
-            ->with($this->stringContains('ya estaba pagada'));
-
-        // 2. Evento
-        $event = $this->get_webhook_event('charge.succeeded', 123);
-
-        // 3. Ejecución
-        $method = $this->get_accessible_method('handle_payment_succeeded');
-        $method->invoke($this->service, $this->mock_order, $event);
-    }
-
-    /**
-     * Prueba la lógica de 'transaction.expired'.
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_expired
-     */
-    public function test_handle_payment_expired()
-    {
-        // 1. Preparación
-        $this->mock_order->method('has_status')->with('on-hold')->willReturn(true);
-
-        // Esperamos que se llame a 'update_status'
-        $this->mock_order->expects($this->once())
-            ->method('update_status')
-            ->with('cancelled', $this->stringContains('expirado'));
-
-        // 2. Evento
-        $event = $this->get_webhook_event('transaction.expired', 123);
-
-        // 3. Ejecución
-        $method = $this->get_accessible_method('handle_payment_expired');
-        $method->invoke($this->service, $this->mock_order, $event);
-    }
-
-    /**
-     * Prueba que 'transaction.expired' se ignore si la orden no está 'on-hold'.
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_expired
-     */
-    public function test_handle_payment_expired_not_on_hold()
-    {
-        // 1. Preparación
-        $this->mock_order->method('has_status')->with('on-hold')->willReturn(false); // No está 'on-hold'
-
-        // Esperamos que NUNCA se llame a 'update_status'
-        $this->mock_order->expects($this->never())->method('update_status');
-
-        // 2. Evento
-        $event = $this->get_webhook_event('transaction.expired', 123);
-
-        // 3. Ejecución
-        $method = $this->get_accessible_method('handle_payment_expired');
-        $method->invoke($this->service, $this->mock_order, $event);
-    }
-
-    /**
-     * Prueba la lógica de 'charge.failed'.
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_failed
-     */
-    public function test_handle_payment_failed()
-    {
-        // 1. Preparación
-        $this->mock_order->method('has_status')->with('on-hold')->willReturn(true);
-
-        // Esperamos que se llame a 'update_status'
-        $this->mock_order->expects($this->once())
-            ->method('update_status')
-            ->with('failed', $this->stringContains('falló'));
-
-        // 2. Evento
-        $event = $this->get_webhook_event('charge.failed', 123);
-
-        // 3. Ejecución
-        $method = $this->get_accessible_method('handle_payment_failed');
-        $method->invoke($this->service, $this->mock_order, $event);
-    }
-
-    /**
-     * Prueba la lógica de 'charge.cancelled'.
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_payment_failed
-     */
-    public function test_handle_payment_cancelled()
-    {
-        // 1. Preparación
-        $this->mock_order->method('has_status')->with('on-hold')->willReturn(true);
-
-        // Esperamos que se llame a 'update_status'
-        $this->mock_order->expects($this->once())
-            ->method('update_status')
-            ->with('failed', $this->stringContains('falló'));
-
-        // 2. Evento
-        $event = $this->get_webhook_event('charge.cancelled', 123);
-
-        // 3. Ejecución
-        $method = $this->get_accessible_method('handle_payment_failed');
-        $method->invoke($this->service, $this->mock_order, $event);
-    }
-
-    // Estas pruebas SÍ pueden probar el método público 'handle_webhook'
-    // porque prueban los 'return' tempranos (antes de 'wc_get_order')
-
-    /** @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook */
-    public function test_handle_webhook_empty_payload()
-    {
-        $this->mock_logger->expects($this->once())
+        // Caso 1: Array (no string)
+        $this->mock_logger->expects($this->atLeastOnce())
             ->method('error')
-            ->with($this->stringContains('ejecutada sin payload'));
+            ->with($this->stringContains('no es un string'));
+        $this->processor_mocked->handle_webhook(['dato' => 'erroneo']);
 
-        $this->service->handle_webhook(null);
+        // Caso 2: Vacío
+        $this->processor_mocked->handle_webhook('');
     }
 
-    /** @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook */
-    public function test_handle_webhook_payload_not_string()
+    public function test_handle_webhook_invalid_json_format()
     {
-        $this->mock_logger->expects($this->once())
+        // Enviamos un string que no es JSON válido
+        $invalid_json = '{"type": "charge.succeeded"';
+
+        $this->mock_logger->expects($this->atLeastOnce())
             ->method('error')
-            ->with($this->stringContains('o no es un string'));
+            ->with($this->stringContains('no es JSON')); // Usamos una parte única del mensaje
 
-        $this->service->handle_webhook(['foo' => 'bar']); // Pasar un array
+        $this->processor_mocked->handle_webhook($invalid_json);
     }
 
-    /** @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook */
-    public function test_handle_webhook_invalid_json()
+    public function test_handle_webhook_wrong_payment_method()
     {
-        $this->mock_logger->expects($this->once())
-            ->method('error')
-            ->with($this->stringContains('Payload de webhook inválido'));
+        $payload = json_encode([
+            'type' => 'charge.succeeded',
+            'transaction' => [
+                'method' => 'card', // Método incorrecto
+                'id' => 'tr_123',
+                'order_id' => $this->order_id
+            ]
+        ]);
 
-        $this->service->handle_webhook('{"invalid_json": "missing_brace"');
+        // Capturamos todos los logs en un array
+        // Esto evita el error de que PHPUnit evalúe el log incorrecto ("TAREA RECIBIDA")
+        $captured_logs = [];
+        $this->mock_logger->method('info')->will($this->returnCallback(function ($message) use (&$captured_logs) {
+            $captured_logs[] = $message;
+            return true;
+        }));
+
+        $this->processor_mocked->handle_webhook($payload);
+
+        // Buscamos manualmente el mensaje en los logs capturados
+        $found = false;
+        foreach ($captured_logs as $log) {
+            if (strpos($log, 'El método no es "store"') !== false) {
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'No se encontró el log esperado: "El método no es "store""');
     }
 
-    /** @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook */
-    public function test_handle_webhook_missing_type()
-    {
-        $this->mock_logger->expects($this->once())
-            ->method('error')
-            ->with($this->stringContains('inválido o no es JSON'));
-
-        $this->service->handle_webhook('{"foo": "bar"}'); // JSON válido, pero sin 'type'
-    }
-
-    /** @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook */
-    public function test_handle_webhook_missing_order_id()
-    {
-        $this->mock_logger->expects($this->once())
-            ->method('warning')
-            ->with($this->stringContains('recibido sin order_id'));
-
-        $this->service->handle_webhook('{"type": "charge.succeeded", "transaction": {}}');
-    }
-
-
-    // --- Métodos de Ayuda (Helpers) ---
-
-    /**
-     * Helper para obtener un método privado o protegido como accesible.
-     * @param string $method_name
-     * @return \ReflectionMethod
-     */
-    private function get_accessible_method($method_name)
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod($method_name);
-        $method->setAccessible(true);
-        return $method;
-    }
-
-    /**
-     * Helper para crear un objeto de evento simulado.
-     * (Ya no necesitamos el payload de string)
-     */
-    private function get_webhook_event($type, $order_id, $txn_id = 'txn_12345', $event_id = 'evt_abcde')
-    {
-        $event = new \stdClass();
-        $event->type = $type;
-        $event->id = $event_id;
-
-        $event->transaction = new \stdClass();
-        $event->transaction->order_id = $order_id;
-        $event->transaction->id = $txn_id;
-
-        return $event;
-    }
-
-
-    // tests para cubrir logica de notificaciones
-
-    /**
-     * Prueba la línea 61: if (!$order)
-     * (Asumiendo que wc_get_order() devuelve false)
-     * @covers \OpenpayStores\Services\OpenpayWebhookProcessorService::handle_webhook
-     */
     public function test_handle_webhook_order_not_found()
     {
-        // 1. Preparación: Creamos un payload que pasará la validación
-        $payload = $this->get_webhook_payload_string('charge.succeeded', 999999);
+        // 1. Preparar Payload con un ID de orden inexistente (ej. 99999)
+        $payload = json_encode([
+            'type' => 'charge.succeeded',
+            'transaction' => [
+                'method' => 'store',
+                'id' => 'tr_123',
+                'order_id' => 99999 // <-- ID que NO existe en la BD de pruebas
+            ]
+        ]);
 
-        // 2. Configurar Logger
-        // Esperamos que se registre el error "no encontrado"
-        $this->mock_logger->expects($this->once())
+        // 2. Expectativa: El logger debe recibir el mensaje de error específico
+        $this->mock_logger->expects($this->atLeastOnce())
             ->method('error')
-            ->with($this->stringContains('Webhook para la orden 999999 no encontrado.'));
+            ->with($this->stringContains('Orden no encontrada'));
 
-        // 3. Ejecución
-        // wc_get_order(999999) devolverá false, activando la línea 61
-        $this->service->handle_webhook($payload);
+        // 3. Ejecutar
+        // Esto llamará a wc_get_order(99999), que devolverá false, activando tu IF
+        $this->processor_mocked->handle_webhook($payload);
+    }
+
+    public function test_handle_webhook_api_init_failure()
+    {
+        // 1. Payload válido para pasar las validaciones iniciales
+        $payload = json_encode([
+            'type' => 'charge.succeeded',
+            'transaction' => [
+                'method' => 'store',
+                'id' => 'tr_123',
+                'order_id' => $this->order_id
+            ]
+        ]);
+
+        // 2. FORZAR que init_openpay_api devuelva NULL
+        // Esto hará que el código entre en el if (!$openpay)
+        $this->processor_mocked->setMockApi(null);
+
+        // 3. Expectativa: El catch debe capturar la excepción lanzada
+        // El mensaje del log será: "[WebhookProcessor] Excepción crítica: No se pudieron cargar las credenciales de Openpay."
+        $this->mock_logger->expects($this->atLeastOnce())
+            ->method('error')
+            ->with($this->stringContains('Excepción crítica'));
+
+        // 4. Ejecutar
+        $this->processor_mocked->handle_webhook($payload);
+    }
+
+    public function test_handle_webhook_customer_lookup()
+    {
+        // Payload con customer_id
+        $payload = $this->create_payload('charge.succeeded', $this->order_id, 'cust_123');
+
+        $mock_customer = $this->getMockBuilder(\stdClass::class)->addMethods(['get'])->getMock();
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'completed'];
+
+        // Esperamos que llame a customers->get y luego charge
+        $this->mock_openpay_api->customers->expects($this->once())->method('get')->with('cust_123')->willReturn($mock_customer);
+        $mock_customer->charges = $this->getMockBuilder(\stdClass::class)->addMethods(['get'])->getMock();
+        $mock_customer->charges->expects($this->once())->method('get')->willReturn($mock_charge);
+
+        $this->processor_mocked->handle_webhook($payload);
+
+        // Verificar que la orden se procesó
+        $updated_order = wc_get_order($this->order_id);
+        $this->assertEquals('processing', $updated_order->get_status());
+    }
+
+    public function test_handle_webhook_direct_lookup()
+    {
+        $payload = $this->create_payload('charge.succeeded', $this->order_id, null); // Sin customer_id
+
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'completed'];
+        $this->mock_openpay_api->charges->expects($this->once())->method('get')->willReturn($mock_charge);
+
+        $this->processor_mocked->handle_webhook($payload);
+    }
+
+    public function test_handle_webhook_critical_exception()
+    {
+        $payload = $this->create_payload('charge.succeeded', $this->order_id);
+
+        // Hacemos que la API lance una excepción
+        $this->mock_openpay_api->charges->method('get')->will($this->throwException(new \Exception('Error API')));
+
+        $this->mock_logger->expects($this->atLeastOnce())
+            ->method('error')
+            ->with($this->stringContains('Excepción crítica'));
+
+        $this->processor_mocked->handle_webhook($payload);
+    }
+
+    public function test_handle_payment_expired_not_on_hold()
+    {
+        $this->order->set_status('processing'); // Ya no está on-hold
+        $this->order->save();
+
+        $payload = $this->create_payload('transaction.expired', $this->order_id);
+
+        // Mockeamos respuesta API
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'cancelled'];
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        // No debe cambiar el estado
+        $this->processor_mocked->handle_webhook($payload);
+        $this->assertEquals('processing', wc_get_order($this->order_id)->get_status());
+    }
+
+    public function test_handle_payment_expired_success()
+    {
+        $payload = $this->create_payload('transaction.expired', $this->order_id);
+
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'cancelled'];
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        $this->processor_mocked->handle_webhook($payload);
+        $this->assertEquals('cancelled', wc_get_order($this->order_id)->get_status());
+    }
+
+    public function test_handle_payment_expired_mismatch()
+    {
+        $payload = $this->create_payload('transaction.expired', $this->order_id);
+
+        // El webhook dice expired, pero la API dice 'in_progress'
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'in_progress'];
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        $this->mock_logger->expects($this->atLeastOnce())
+            ->method('warning')
+            ->with($this->stringContains('Evento expirado recibido, pero el status'));
+
+        $this->processor_mocked->handle_webhook($payload);
+        $this->assertEquals('on-hold', wc_get_order($this->order_id)->get_status());
+    }
+
+    public function test_handle_charge_failed()
+    {
+        $payload_failed = $this->create_payload('charge.failed', $this->order_id);
+        $payload_cancelled = $this->create_payload('charge.cancelled', $this->order_id);
+
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'cancelled'];
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        $this->processor_mocked->handle_webhook($payload_failed);
+        $this->processor_mocked->handle_webhook($payload_cancelled);
+        $this->assertEquals('failed', wc_get_order($this->order_id)->get_status());
+
+    }
+
+    public function test_handle_succeeded_status_mismatch()
+    {
+        // 1. Payload de éxito
+        $payload = $this->create_valid_payload('charge.succeeded');
+
+        // 2. Mock de API: Devuelve un estado DIFERENTE a 'completed'
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'in_progress'];
+
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        // 3. Expectativa: Se debe registrar una advertencia (warning)
+        $this->mock_logger->expects($this->atLeastOnce())
+            ->method('warning')
+            ->with($this->stringContains('Discrepancia'));
+
+        // 4. Ejecutar
+        $this->processor_mocked->handle_webhook($payload);
+
+        // 5. Verificación extra: El estado de la orden NO debe haber cambiado
+        $updated_order = wc_get_order($this->order_id);
+        $this->assertEquals('on-hold', $updated_order->get_status());
+    }
+
+    public function test_handle_succeeded_already_paid()
+    {
+        // 1. Preparación: Marcar la orden como PAGADA en la base de datos
+        $this->order->set_status('completed');
+        $this->order->save();
+
+        // 2. Payload y Mock correctos (API confirma que está pagado)
+        $payload = $this->create_valid_payload('charge.succeeded');
+        $mock_charge = (object) ['id' => 'tr_123', 'status' => 'completed'];
+        $this->mock_openpay_api->charges->method('get')->willReturn($mock_charge);
+
+        // 3. Captura de Logs para buscar el mensaje específico
+        $captured_logs = [];
+        $this->mock_logger->method('info')->will($this->returnCallback(function ($message) use (&$captured_logs) {
+            $captured_logs[] = $message;
+            return true;
+        }));
+
+        // 4. Ejecutar
+        $this->processor_mocked->handle_webhook($payload);
+
+        // 5. Verificación: Buscamos el mensaje de "ya estaba pagada"
+        $found = false;
+        foreach ($captured_logs as $log) {
+            if (strpos($log, 'ya estaba pagada') !== false) {
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'No se encontró el log esperado: "ya estaba pagada"');
+    }
+
+    public function test_init_api_returns_null_when_no_settings()
+    {
+        delete_option('woocommerce_openpay_stores_settings');
+
+        $realService = new OpenpayWebhookProcessorService();
+        $method = new \ReflectionMethod(OpenpayWebhookProcessorService::class, 'init_openpay_api');
+        $method->setAccessible(true);
+
+        $this->assertNull($method->invoke($realService));
     }
 
 
-    // --- Helper para Payload de String ---
-    private function get_webhook_payload_string($type, $order_id, $txn_id = 'txn_12345', $event_id = 'evt_abcde')
+    public function test_init_api_returns_null_when_credentials_missing()
     {
-        $event = [
+        $settings = ['sandbox' => 'yes', 'test_merchant_id' => '', 'test_private_key' => ''];
+        update_option('woocommerce_openpay_stores_settings', $settings);
+
+        $realService = new OpenpayWebhookProcessorService();
+        $method = new \ReflectionMethod(OpenpayWebhookProcessorService::class, 'init_openpay_api');
+        $method->setAccessible(true);
+
+        $this->assertNull($method->invoke($realService));
+    }
+
+
+    public function test_init_api_success_sandbox()
+    {
+        $settings = ['sandbox' => 'yes', 'country' => 'MX', 'test_merchant_id' => 'id', 'test_private_key' => 'sk'];
+        update_option('woocommerce_openpay_stores_settings', $settings);
+
+        $realService = new OpenpayWebhookProcessorService();
+        $method = new \ReflectionMethod(OpenpayWebhookProcessorService::class, 'init_openpay_api');
+        $method->setAccessible(true);
+
+        $this->assertInstanceOf(\Openpay\Data\OpenpayApi::class, $method->invoke($realService));
+    }
+
+
+    public function test_init_api_success_live()
+    {
+        $settings = ['sandbox' => 'no', 'country' => 'CO', 'live_merchant_id' => 'id', 'live_private_key' => 'sk'];
+        update_option('woocommerce_openpay_stores_settings', $settings);
+
+        $realService = new OpenpayWebhookProcessorService();
+        $method = new \ReflectionMethod(OpenpayWebhookProcessorService::class, 'init_openpay_api');
+        $method->setAccessible(true);
+
+        $this->assertInstanceOf(\Openpay\Data\OpenpayApi::class, $method->invoke($realService));
+    }
+
+
+    private function create_payload($type, $order_id, $customer_id = null)
+    {
+        return json_encode([
             'type' => $type,
-            'id' => $event_id,
+            'event_date' => '2025-11-12T12:00:00',
             'transaction' => [
+                'method' => 'store',
+                'id' => 'tr_123',
                 'order_id' => $order_id,
-                'id' => $txn_id,
+                'customer_id' => $customer_id
             ]
-        ];
-        return json_encode($event);
+        ]);
+    }
+}
+
+/**
+ * Subclase Testable
+ */
+class TestableOpenpayWebhookProcessorService extends OpenpayWebhookProcessorService
+{
+    private $mock_api_instance;
+
+    public function setMockApi($mock)
+    {
+        $this->mock_api_instance = $mock;
+    }
+
+    protected function init_openpay_api()
+    {
+        return $this->mock_api_instance;
     }
 }

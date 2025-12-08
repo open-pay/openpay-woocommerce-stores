@@ -63,28 +63,22 @@ class OpenpayChargeService
 
     public function create($openpay_customer, $charge_request)
     {
-        //try {
-            $order_id = $this->order->get_id();
-            if (is_user_logged_in()) {
-                $customer_id = $this->order->get_customer_id();
-                $charge = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use($openpay_customer, $charge_request, $order_id, $customer_id) {
-                    return $openpay_customer->charges->create($charge_request);
-                 }, $order_id, $customer_id);
-                 return $charge;
-                //return $openpay_customer->charges->create($charge_request);
-            } else {
-                $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Inicio');
-                $openpay = $this->openpay;
-                $charge = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use ($openpay, $charge_request, $order_id) {
-                    return $openpay->charges->create($charge_request);
-                }, $order_id);
-                $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Fin');
-                return $charge;
-                //return $this->openpay->charges->create($charge_request);
-            }
-        /*} catch (Exception $e) {
-            throw new Exception($e);
-        }*/
+        $order_id = $this->order->get_id();
+        if (is_user_logged_in()) {
+            $customer_id = $this->order->get_customer_id();
+            $charge = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use ($openpay_customer, $charge_request, $order_id, $customer_id) {
+                return $openpay_customer->charges->create($charge_request);
+            }, $order_id, $customer_id);
+            return $charge;
+        } else {
+            $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Inicio');
+            $openpay = $this->openpay;
+            $charge = OpenpayStoresErrorHandler::catchOpenpayStoreError(function () use ($openpay, $charge_request, $order_id) {
+                return $openpay->charges->create($charge_request);
+            }, $order_id);
+            $this->logger->info('[OpenpayChargeService.create ( Customer NOT LoggedIn )] Fin');
+            return $charge;
+        }
     }
 
     private function collectChargeData($payment_settings)
