@@ -78,7 +78,7 @@ class OpenpayStoresErrorHandlerTest extends \WP_UnitTestCase
         $this->expectException(\Exception::class);
 
         // Esperamos el mensaje de 'clientError' para el código 1003
-        $this->expectExceptionMessage('Asegurar certificado seguridad.');
+        $this->expectExceptionMessage('Petición con parámetros incorrectos.');
         $this->expectExceptionCode(1003);
 
         // 3. Ejecución
@@ -139,15 +139,13 @@ class OpenpayStoresErrorHandlerTest extends \WP_UnitTestCase
         // 1. Preparación: Crear una excepción genérica
         $generic_exception = new \Exception('Este es un error genérico', 500);
 
-
-
         // 2. Verificación del Logger
         // Esperamos que el logger se llame con el mensaje de la excepción
         $this->mock_logger->expects($this->once())
             ->method('error')
             ->with(
                 '[EXCEPTION] Este es un error genérico',
-                $this->isType('array') // Verificamos que pase un array (ahora que corregimos el bug)
+                $this->isType('array')
             );
 
         // 3. Ejecución
