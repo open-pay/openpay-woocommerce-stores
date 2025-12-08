@@ -19,7 +19,7 @@ class OpenpayStoresErrorManagerTest extends \WP_UnitTestCase
 
         $this->assertIsArray($messages);
         $this->assertArrayHasKey('clientError', $messages);
-        $this->assertEquals('Asegurar certificado seguridad.', $messages['clientError']);
+        $this->assertEquals('Petición con parámetros incorrectos.', $messages['clientError']);
         $this->assertEquals('La instancia no tiene certificado de seguridad para https ó no estan disponibles lo puertos válidos', $messages['orderDetailError']);
     }
 
