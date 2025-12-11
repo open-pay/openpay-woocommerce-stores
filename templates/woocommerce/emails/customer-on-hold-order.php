@@ -27,15 +27,8 @@ $due_date_formatted = '';
 if ($openpay_due_date) {
     // Crear objeto DateTime con la zona horaria incluida en la fecha
     $date = new DateTime($openpay_due_date);
-
-    // Definir la zona horaria según el país
-    $timezone_name = ($country == 'CO') ? 'America/Bogota' : 'America/Mexico_City';
-    $timezone = new DateTimeZone($timezone_name);
-
-    // Mantener la hora en la zona horaria original (América/México o Colombia)
-    $date->setTimezone($timezone);
-    // Formatear la fecha en español forzando la zona horaria con wp_date
-    $due_date_formatted = wp_date('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp(), $timezone);
+    // Formatear la fecha en español manteniendo la zona horaria original del objeto
+    $due_date_formatted = wp_date('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp(), $date->getTimezone());
 }
 
 // Obtener productos del pedido
@@ -101,7 +94,15 @@ if ($openpay_reference) {
                                         <span style="color: #333333; font-size: 16px;">
                                             <?php echo esc_html__('Resumen del pago:', 'openpay-stores'); ?>
                                         </span>
-                                    <img src="https://img.openpay.mx/plugins/woocommerce/paynet.png" alt="Paynet" width="80" style="float: right;">
+                                    <?php
+                                        if($country == 'CO'){
+                                            echo '<img src="https://img.openpay.mx/plugins/woocommerce/efecty.png" alt="Efecty" width="80" style="float: right;">';
+                                        }
+                                        if($country == 'MX'){
+                                            echo '<img src="https://img.openpay.mx/plugins/woocommerce/paynet.png" alt="Paynet" width="80" style="float: right;">';
+                                        }
+                                    ?>
+
                                 </td>
                             </tr>
                         </table>
@@ -114,9 +115,9 @@ if ($openpay_reference) {
                                             <?php echo esc_html__('Total a pagar:', 'openpay-stores'); ?>
                                         </span>
                                 </td>
-                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: right;">
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
                                         <span style="color: #333333; font-size: 14px;">
-                                            <?php echo wp_kses_post($order_total); ?>*
+                                            <?php echo wp_kses_post($order_total); ?>* <?php echo ($country == 'CO' ? ' COP' : ''); ?>
                                         </span>
                                 </td>
                             </tr>
@@ -126,7 +127,7 @@ if ($openpay_reference) {
                                             <?php echo esc_html__('Fecha límite de pago:', 'openpay-stores'); ?>
                                         </span>
                                 </td>
-                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: right;">
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
                                         <span style="color: #333333; font-size: 14px;">
                                             <?php echo esc_html($due_date_formatted); ?>
                                         </span>
@@ -138,7 +139,7 @@ if ($openpay_reference) {
                                             <?php echo esc_html__('Concepto:', 'openpay-stores'); ?>
                                         </span>
                                 </td>
-                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: right;">
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
                                         <span style="color: #333333; font-size: 14px;">
                                             <?php echo esc_html($concepto); ?>
                                         </span>
@@ -150,12 +151,28 @@ if ($openpay_reference) {
                                             <?php echo esc_html__('Beneficiario:', 'openpay-stores'); ?>
                                         </span>
                                 </td>
-                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: right;">
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
                                         <span style="color: #333333; font-size: 14px;">
                                             <?php echo esc_html($shop_name); ?>
                                         </span>
                                 </td>
                             </tr>
+                            <?php if ($country == 'CO') : ?>
+                            <tr>
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">
+                                        <span style="color: #333333; font-size: 14px; font-weight: bold;">
+                                            <?php echo esc_html__('Número de convenio:', 'openpay-stores'); ?>
+                                        </span>
+                                </td>
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
+                                    <div>
+                                    <span style="color: #333333; font-size: 14px;">
+                                        <strong>Efecty:</strong> 112806
+                                    </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
                         </table>
 
                         <!-- Commission Note -->
@@ -166,19 +183,27 @@ if ($openpay_reference) {
                         <!-- Barcode Section -->
                         <?php if ($openpay_barcode_url): ?>
                             <div style="text-align: center; margin-bottom: 30px;">
-                                <p style="color: #333333; font-size: 14px; font-weight: bold; margin-bottom: 15px;">
-                                    <?php echo esc_html__('Muestra el código impreso o desde tu dispositivo', 'openpay-stores'); ?>
-                                </p>
-
-                                <img src="<?php echo esc_url($openpay_barcode_url); ?>" alt="<?php echo esc_attr__('Código de barras', 'openpay-stores'); ?>" width="300" height="80" style="display: block; margin: 0 auto 15px auto; height: 80px; width: 300px;">
-                               <?php endif; ?>
+                                <?php if ($country == 'MX') : ?>
+                                    <p style="color: #333333; font-size: 14px; font-weight: bold; margin-bottom: 15px;">
+                                        <?php echo esc_html__('Muestra el código impreso o desde tu dispositivo', 'openpay-stores'); ?>
+                                    </p>
+                                    <img src="<?php echo esc_url($openpay_barcode_url); ?>" alt="<?php echo esc_attr__('Código de barras', 'openpay-stores'); ?>" width="300" height="80" style="display: block; margin: 0 auto 15px auto; height: 80px; width: 300px;">
+                                <?php endif; ?>
+                                <?php if ($country == 'CO') : ?>
+                                    <p style="color: #333333; font-size: 15px; font-weight: bold; margin-bottom: 15px;">
+                                        <?php echo esc_html__('Número de referencia', 'openpay-stores'); ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php endif; ?>
 
                         <!-- Reference Number -->
                         <?php if (!empty($reference_parts)): ?>
                             <div style="text-align: center; margin-bottom: 30px;">
-                                <p style="color: #333333; font-size: 14px; font-weight: bold; margin-bottom: 15px;">
-                                    <?php echo esc_html__('O dicta el número de referencia', 'openpay-stores'); ?>
-                                </p>
+                                <?php if ($country == 'MX') : ?>
+                                    <p style="color: #333333; font-size: 14px; font-weight: bold; margin-bottom: 15px;">
+                                        <?php echo esc_html__('O dicta el número de referencia', 'openpay-stores'); ?>
+                                    </p>
+                                <?php endif; ?>
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
                                     <tr>
                                         <?php foreach ($reference_parts as $index => $part): ?>
@@ -194,17 +219,20 @@ if ($openpay_reference) {
                             </div>
                         <?php endif; ?>
 
-                        <!-- Payment Locations -->
-                        <p style="color: #333333; font-size: 14px; margin-bottom: 15px;">
-                            <?php echo esc_html__('Recuerda que puedes realizar tu pago en los siguientes establecimientos:', 'openpay-stores'); ?>
-                        </p>
-                        <table role="presentation" width="100%" cellpadding="10" cellspacing="0" border="0" style="margin-bottom: 30px;">
-                            <tr>
-                                <td align="center" width="100%">
-                                    <img src="https://img.openpay.mx/plugins/woocommerce/tiendas.png" alt="tiendas" style="display: block;">
-                                </td>
-                            </tr>
-                        </table>
+                        <?php if ($country == 'MX') : ?>
+                            <!-- Payment Locations -->
+                            <p style="color: #333333; font-size: 14px; margin-bottom: 15px;">
+                                <?php echo esc_html__('Recuerda que puedes realizar tu pago en los siguientes establecimientos:', 'openpay-stores'); ?>
+                            </p>
+                            <table role="presentation" width="100%" cellpadding="10" cellspacing="0" border="0" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td align="center" width="100%">
+                                        <img src="https://img.openpay.mx/plugins/woocommerce/tiendas.png" alt="tiendas" style="display: block;">
+                                    </td>
+                                </tr>
+                            </table>
+                        <?php endif; ?>
+
 
                         <!-- Print Button -->
                         <?php if ($pdf_url): ?>
