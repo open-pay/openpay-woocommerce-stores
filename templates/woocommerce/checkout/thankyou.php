@@ -27,15 +27,8 @@ $due_date_formatted = '';
 if ($openpay_due_date) {
     // Crear objeto DateTime con la zona horaria incluida en la fecha
     $date = new DateTime($openpay_due_date);
-
-    // Definir la zona horaria según el país
-    $timezone_name = ($country == 'CO') ? 'America/Bogota' : 'America/Mexico_City';
-    $timezone = new DateTimeZone($timezone_name);
-
-    // Mantener la hora en la zona horaria original (América/México o Colombia)
-    $date->setTimezone($timezone);
-    // Formatear la fecha en español forzando la zona horaria con wp_date
-    $due_date_formatted = wp_date('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp(), $timezone);
+    // Formatear la fecha en español manteniendo la zona horaria original del objeto
+    $due_date_formatted = wp_date('j \d\e F \a \l\a\s H:i \h', $date->getTimestamp(), $date->getTimezone());
 }
 
 // Obtener productos del pedido
@@ -62,7 +55,7 @@ if ($openpay_reference) {
     <!-- Encabezado con ícono de éxito -->
     <div class="openpay-reference__header">
         <div class="openpay-reference__icon openpay-reference__icon--success">
-            <img src="https://cdn-icons-png.flaticon.com/512/4436/4436481.png" alt="Éxito" class="openpay-reference__icon-image">
+            <img src="https://img.openpay.mx/plugins/woocommerce/right.svg" alt="Éxito" class="openpay-reference__icon-image">
         </div>
         <h1 class="openpay-reference__title">Referencia creada con éxito</h1>
         <p class="openpay-reference__subtitle">
@@ -100,7 +93,9 @@ if ($openpay_reference) {
         <?php if ($country == 'CO') : ?>
             <div class="openpay-reference__detail-row">
                 <span class="openpay-reference__detail-label">Código de agencia o agente:</span>
-                <span class="openpay-reference__detail-value">Puntored: 5792109901738 Efecty:112806</span>
+                <div style="text-align: left;">
+                    <div class="openpay-reference__detail-value">Efecty:112806</div>
+                </div>
             </div>
         <?php endif; ?>
 
@@ -277,7 +272,8 @@ if ($openpay_reference) {
      */
     .openpay-reference__detail-row {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 10px;
         padding: 12px 0;
         border-bottom: 1px solid #e0e0e0;
     }
@@ -296,16 +292,18 @@ if ($openpay_reference) {
         font-weight: bold;
         color: #333;
         font-size: 14px;
+        flex: 0 0 50%;
     }
 
     /**
-     * Valor del detalle (derecha)
-     * Alineado a la derecha y con color más claro
+     * Valor del detalle (izquierda)
+     * Alineado a la izquierda y con color más claro
      */
     .openpay-reference__detail-value {
         color: #666;
         font-size: 14px;
-        text-align: right;
+        text-align: left;
+        flex: 0 0 50%;
     }
 
     /* Commission Note
@@ -549,10 +547,6 @@ if ($openpay_reference) {
             flex-direction: column;
             gap: 5px;
             padding: 10px 0;
-        }
-
-        .openpay-reference__detail-value {
-            text-align: left;
         }
 
         .openpay-reference__number-block {
