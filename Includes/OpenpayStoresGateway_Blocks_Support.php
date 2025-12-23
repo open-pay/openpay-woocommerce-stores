@@ -10,16 +10,14 @@ final class OpenpayStoresGateway_Blocks_Support extends AbstractPaymentMethodTyp
     protected $name = 'openpay_stores';
 
     public function initialize() {
-        // get payment gateway settings
-        $this->settings = get_option( "woocommerce_{$this->name}_settings", array() );
-
-        add_action( 'woocommerce_rest_checkout_process_payment_with_context', function( $context, $result ) {
-            $logger = wc_get_logger();
-            $logger->debug('CONTEXT->PAYMENT_METHOD - ' . json_encode($context->payment_method));
-            if ( $context->payment_method === 'openpay_stores' ) {
-                $logger->debug('CONTEXT->FRONT_PAYMENT_DATA - ' . json_encode($context->payment_data));
-            }
-        }, 10, 2 );
+            // get payment gateway settings
+            $this->settings = get_option("woocommerce_{$this->name}_settings", array());
+            add_action('woocommerce_rest_checkout_process_payment_with_context', function ($context, $result) {
+                $logger = wc_get_logger();
+                if ($context->payment_method === 'openpay_stores') {
+                    $logger->debug('CONTEXT->FRONT_PAYMENT_DATA - ' . json_encode($context->payment_data));
+                }
+            }, 10, 2);
     }
 
     public function is_active() {
