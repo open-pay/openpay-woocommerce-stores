@@ -53,6 +53,13 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->init_form_fields();
         $this->init_settings();
         $this->logger = wc_get_logger();
+        $this->country = $this->get_option('country');
+
+        // Disable Plugin if Currency is not supported by Country.
+        $allowedCurrencies = OpenpayUtils::getCurrencies($this->country);
+        if (!in_array(get_woocommerce_currency(), $allowedCurrencies)) {
+            $this->update_option('enabled','0');
+        }
 
         // Método para establecer las propiedades según los ajustes actuales
         $this->setup_properties();
@@ -167,51 +174,55 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function process_payment($order_id)
     {
         global $woocommerce;
-        $order = wc_get_order($order_id);
-        //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
+        $gateways = $woocommerce->payment_gateways->payment_gateways();
+        $gateway = $gateways[ 'openpay_stores' ];
+        if ($gateway->enabled === 'yes') {
+            $order = wc_get_order($order_id);
+            //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
 
-        if (!$this->openpay) {
-            wc_add_notice(__('Error de configuración de Openpay: Faltan credenciales.', 'openpay_stores'), 'error');
-            return false;
-        }
-
-        // Obtener el cliente -> si no existe agregar la información al cargo.
-        $customer_service = new OpenpayCustomerService($this->openpay, $this->country, $this->is_sandbox);
-        $openpay_customer = $customer_service->retrieveCustomer($order);
-
-        $payment_settings = array(
-            'openpay_customer' => $openpay_customer,
-            'pdf_url_base' => OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country),
-            'deadline' => $this->deadline,
-            'sandbox' => $this->is_sandbox,
-            'merchant_id' => $this->merchant_id,
-            'country' => $this->country,
-            'iva' => $this->iva
-        );
-
-        // Se ejecuta la petición de creación de orden de pago
-        $charge_service = new OpenpayChargeService($this->openpay, $order, $customer_service);
-        $charge = $charge_service->processOpenpayCharge($payment_settings);
-
-        if ($charge) {
-            $order->update_status('on-hold', 'En espera de pago');
-            wc_reduce_stock_levels($order);
-            $woocommerce->cart->empty_cart();
-            $order->add_order_note(sprintf("El pago será procesado por %s con ID de transacción: '%s'", $this->GATEWAY_NAME, $charge->id));
-
-            return array(
-                'result' => 'success',
-                'redirect' => $this->get_return_url($order)
-            );
-        } else {
-            $order->add_order_note(sprintf("%s - Error en la transacción: '%s'", $this->GATEWAY_NAME, $this->transactionErrorMessage));
-
-            if (function_exists('wc_add_notice')) {
-                wc_add_notice(__('Error en la transacción: No se pudo completar tu pago.'), $notice_type = 'error');
-            } else {
-                $woocommerce->add_error(__('Error en la transacción: No se pudo completar tu pago.'), 'woothemes');
+            if (!$this->openpay) {
+                wc_add_notice(__('Error de configuración de Openpay: Faltan credenciales.', 'openpay_stores'), 'error');
+                return false;
             }
-            return false;
+
+            // Obtener el cliente -> si no existe agregar la información al cargo.
+            $customer_service = new OpenpayCustomerService($this->openpay, $this->country, $this->is_sandbox);
+            $openpay_customer = $customer_service->retrieveCustomer($order);
+
+            $payment_settings = array(
+                'openpay_customer' => $openpay_customer,
+                'pdf_url_base' => OpenpayUtils::getUrlPdfBase($this->is_sandbox, $this->country),
+                'deadline' => $this->deadline,
+                'sandbox' => $this->is_sandbox,
+                'merchant_id' => $this->merchant_id,
+                'country' => $this->country,
+                'iva' => $this->iva
+            );
+
+            // Se ejecuta la petición de creación de orden de pago
+            $charge_service = new OpenpayChargeService($this->openpay, $order, $customer_service);
+            $charge = $charge_service->processOpenpayCharge($payment_settings);
+
+            if ($charge) {
+                $order->update_status('on-hold', 'En espera de pago');
+                wc_reduce_stock_levels($order);
+                $woocommerce->cart->empty_cart();
+                $order->add_order_note(sprintf("El pago será procesado por %s con ID de transacción: '%s'", $this->GATEWAY_NAME, $charge->id));
+
+                return array(
+                    'result' => 'success',
+                    'redirect' => $this->get_return_url($order)
+                );
+            } else {
+                $order->add_order_note(sprintf("%s - Error en la transacción: '%s'", $this->GATEWAY_NAME, $this->transactionErrorMessage));
+
+                if (function_exists('wc_add_notice')) {
+                    wc_add_notice(__('Error en la transacción: No se pudo completar tu pago.'), $notice_type = 'error');
+                } else {
+                    $woocommerce->add_error(__('Error en la transacción: No se pudo completar tu pago.'), 'woothemes');
+                }
+                return false;
+            }
         }
     }
 
