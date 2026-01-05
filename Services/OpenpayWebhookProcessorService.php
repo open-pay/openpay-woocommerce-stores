@@ -11,7 +11,7 @@ use WC_Order;
 class OpenpayWebhookProcessorService
 {
 
-    private $logger;
+    protected $logger;
 
     public function __construct()
     {
@@ -109,7 +109,7 @@ class OpenpayWebhookProcessorService
 
     }
 
-    private function init_openpay_api()
+    protected function init_openpay_api()
     {
         $settings = get_option('woocommerce_openpay_stores_settings', []);
 
