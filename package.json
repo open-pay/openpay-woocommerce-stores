@@ -3,7 +3,7 @@
     "version": "2.0.0",
     "main": "index.js",
     "scripts": {
-        "build": "wp-scripts build",
+        "build": "wp-scripts build ./blocks/checkout-form/src/index.js --output-path=./blocks/checkout-form/build",
         "build:checkout": "wp-scripts build ./blocks/checkout-form/src/index.js --output-path=./blocks/checkout-form/build",
         "check-engines": "wp-scripts check-engines",
         "check-licenses": "wp-scripts check-licenses",

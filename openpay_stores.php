@@ -121,13 +121,8 @@ function OpenpayStoresGateway_blocks_support()
 
 function payment_scripts()
 {
-    // Validamos si es el checkout por bloques
-    global $post;
-    if ($post && has_block('woocommerce/checkout', $post) || is_checkout()) {
-        wp_enqueue_style('openpay-store-checkout-style', plugins_url('assets/css/openpay-store-checkout-style.css', __FILE__));
-    }
-
-    if (!is_checkout()) {
+    // Solo en el checkout y si NO hay bloques de checkout activos
+    if (!is_checkout() || (function_exists('has_block') && has_block('woocommerce/checkout'))) {
         return;
     }
     wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array('jquery'), '', true);
