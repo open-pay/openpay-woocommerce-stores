@@ -9,9 +9,8 @@ const label = decodeEntities(settings.title);
 const MODAL_DATA = {
   MX: {
     title: "¿En dónde puedo pagar?",
-    description:
-      "Acude a cualquiera de las siguientes tiendas aliadas o consulta la tienda más cercana",
-    linkText: "consulta la tienda más cercana o",
+    description: "Acude a cualquiera de las siguientes tiendas aliadas o ",
+    linkText: "consulta la tienda más cercana",
     linkUrl: "https://www.paynet.com.mx/mapa-tiendas/index.html",
     columns: [
       [
@@ -28,10 +27,10 @@ const MODAL_DATA = {
   },
   PE: {
     title: "¿En dónde puedo pagar?",
-    description:
-      "Acude a cualquiera de las siguientes tiendas aliadas o consulta la tienda más cercana",
-    linkText: "consulta la tienda más cercana o",
-    linkUrl: "#",
+    description: "Acude a cualquiera de las siguientes tiendas aliadas o ",
+    linkText: "consulta la tienda más cercana",
+    linkUrl:
+      "https://public.openpay.pe/web/descargables/2024/manual-pago-efectivo.pdf",
     columns: [
       ["BBVA", "Caja Arequipa", "Interbank", "Yape"],
       ["BCP", "Caja Huancayo", "Kasnet"],
@@ -129,6 +128,7 @@ const Form = (props) => {
       <div className="openpay-store-checkout-style">
         <div className="step-guide">
           <div className="step-guide__header">
+            {/* Movemos el logo-left arriba para que sea el primer elemento de la fila */}
             <div className="step-guide__logo-left">
               <img
                 src={`${settings.images_dir}/newcheckout/icon-lock.svg`}
@@ -143,6 +143,7 @@ const Form = (props) => {
               </span>
             </div>
 
+            {/* El logo de la red (Paynet/Efecty) ahora será el segundo elemento (derecha) */}
             <div className="step-guide__logo-right">
               {settings.country === "MX" && (
                 <img
