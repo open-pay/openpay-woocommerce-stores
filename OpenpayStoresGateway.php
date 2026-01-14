@@ -45,8 +45,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function __construct()
     {
         $this->id = 'openpay_stores';
-        //$this->title = __('Pago seguro con efectivo', 'openpay_stores');
-        //$this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
         $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
 
@@ -71,6 +69,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Usa el ID de la pasarela para construir el nombre del hook
         add_action('woocommerce_api_' . $this->id, array($this, 'webhook_handler'));
 
+        // Estilos para el checkout clásico
         add_action('wp_enqueue_scripts', array($this, 'enqueue_classic_styles'));
     }
 

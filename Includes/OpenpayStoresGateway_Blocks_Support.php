@@ -64,7 +64,6 @@ final class OpenpayStoresGateway_Blocks_Support extends AbstractPaymentMethodTyp
         );
 
         // REGISTRO DEL ESTILO ESPECÍFICO PARA BLOQUES
-        // Siguiendo la recomendación de separar classic y blocks checkout
         wp_register_style(
             'openpay-stores-blocks-styles',
             $plugin_url . 'assets/css/openpay-store-blocks-checkout.css',

@@ -128,7 +128,6 @@ const Form = (props) => {
       <div className="openpay-store-checkout-style">
         <div className="step-guide">
           <div className="step-guide__header">
-            {/* Movemos el logo-left arriba para que sea el primer elemento de la fila */}
             <div className="step-guide__logo-left">
               <img
                 src={`${settings.images_dir}/newcheckout/icon-lock.svg`}
@@ -143,7 +142,6 @@ const Form = (props) => {
               </span>
             </div>
 
-            {/* El logo de la red (Paynet/Efecty) ahora será el segundo elemento (derecha) */}
             <div className="step-guide__logo-right">
               {settings.country === "MX" && (
                 <img
