@@ -55,6 +55,8 @@ add_action('before_woocommerce_init', function () {
 //Hook para llamar scripts personalizados
 add_action('wp_enqueue_scripts', 'payment_scripts');
 
+add_action('woocommerce_thankyou', 'openpay_stores_custom_thankyou_content', 1);
+
 /**
  * Inicializa la pasarela de pago.
  */
@@ -121,73 +123,61 @@ function OpenpayStoresGateway_blocks_support()
 
 function payment_scripts()
 {
-    // Validamos si es el checkout por bloques
-    global $post;
-    if ($post && has_block('woocommerce/checkout', $post) || is_checkout()) {
-        wp_enqueue_style('openpay-store-checkout-style', plugins_url('assets/css/openpay-store-checkout-style.css', __FILE__));
-    }
-
-    if (!is_checkout()) {
+    // Solo en el checkout y si NO hay bloques de checkout activos
+    if (!is_checkout() || (function_exists('has_block') && has_block('woocommerce/checkout'))) {
         return;
     }
     wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array('jquery'), '', true);
 }
 
-//Filtro para personalizar plantillas de WooCommerce
-add_filter('woocommerce_locate_template', function ($template, $template_name, $template_path) {
-    global $wp;
+/**
+ * MUESTRA LA PLANTILLA EN LA PÁGINA DE CONFIRMACIÓN (UI)
+ * Funciona para Checkout Clásico y Bloques.
+ */
+function openpay_stores_custom_thankyou_content($order_id)
+{
+    if (!$order_id)
+        return;
 
-    // Verificar si es un contexto de orden de Openpay
-    $is_openpay_context = false;
+    $order = wc_get_order($order_id);
 
-    // Verificar en la página de thank you
-    if (isset($wp->query_vars['order-received'])) {
-        $order_id = absint($wp->query_vars['order-received']);
-        if ($order_id) {
-            $order = wc_get_order($order_id);
-            if ($order && $order->get_payment_method() === 'openpay_stores') {
-                $is_openpay_context = true;
-            }
+    if ($order && $order->get_payment_method() === 'openpay_stores') {
+        $template_path = plugin_dir_path(__FILE__) . 'templates/woocommerce/checkout/thankyou.php';
+        if (file_exists($template_path)) {
+            include $template_path;
         }
     }
+}
 
-    // Verificar en emails (cuando se está renderizando un correo)
-    if (!$is_openpay_context && did_action('woocommerce_email_header')) {
-        // Intentar obtener el objeto de email actual
+/**
+ * FILTRA LA PLANTILLA PARA EL CORREO ELECTRÓNICO
+ * Solo se encarga de interceptar el email de "Pedido en espera".
+ */
+add_filter('woocommerce_locate_template', 'openpay_stores_custom_email_template', 10, 3);
+
+function openpay_stores_custom_email_template($template, $template_name, $template_path)
+{
+    // Solo nos interesa el email de pedido en espera
+    if ($template_name !== 'emails/customer-on-hold-order.php') {
+        return $template;
+    }
+
+    // Verificamos si estamos en un contexto de email
+    if (did_action('woocommerce_email_header')) {
         $email = WC()->mailer()->get_emails();
         foreach ($email as $email_obj) {
             if (isset($email_obj->object) && is_a($email_obj->object, 'WC_Order')) {
                 $order = $email_obj->object;
                 if ($order->get_payment_method() === 'openpay_stores') {
-                    $is_openpay_context = true;
-                    break;
+                    // Ruta al archivo del email en tu plugin
+                    $plugin_template = plugin_dir_path(__FILE__) . 'templates/woocommerce/' . $template_name;
+                    if (file_exists($plugin_template)) {
+                        return $plugin_template;
+                    }
                 }
             }
         }
     }
 
-    // Solo aplicar el filtro si es contexto de Openpay
-    if (!$is_openpay_context) {
-        return $template;
-    }
-
-    // Lista de plantillas permitidas
-    $allowed_templates = array(
-        'emails/customer-on-hold-order.php',
-        'checkout/thankyou.php'
-    );
-
-    if (!in_array($template_name, $allowed_templates)) {
-        return $template;
-    }
-
-    // Ruta interna del plugin donde guardas las plantillas
-    $plugin_path = trailingslashit(plugin_dir_path(__FILE__)) . 'templates/woocommerce/';
-    $plugin_template = $plugin_path . $template_name;
-
-    if (file_exists($plugin_template)) {
-        return $plugin_template;
-    }
-
     return $template;
-}, 999, 3);
+}

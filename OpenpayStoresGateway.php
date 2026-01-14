@@ -45,8 +45,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
     public function __construct()
     {
         $this->id = 'openpay_stores';
-        $this->title = __('Pago seguro con efectivo', 'openpay_stores');
-        $this->method_title = __('Pago seguro con efectivo', 'openpay_stores');
         $this->has_fields = true;
         $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
 
@@ -58,16 +56,21 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         // Disable Plugin if Currency is not supported by Country.
         $allowedCurrencies = OpenpayUtils::getCurrencies($this->country);
         if (!in_array(get_woocommerce_currency(), $allowedCurrencies)) {
-            $this->update_option('enabled','0');
+            $this->update_option('enabled', '0');
         }
 
         // Método para establecer las propiedades según los ajustes actuales
         $this->setup_properties();
+
+        $this->set_dynamic_title();
         // Engancha el método para guardar las opciones cuando el admin hace clic en "Guardar cambios"
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 
         // Usa el ID de la pasarela para construir el nombre del hook
         add_action('woocommerce_api_' . $this->id, array($this, 'webhook_handler'));
+
+        // Estilos para el checkout clásico
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_classic_styles'));
     }
 
     private function setup_properties()
@@ -171,11 +174,32 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         );
     }
 
+    /**
+     * Define el título del método de pago que ve el cliente en el Checkout
+     */
+    private function set_dynamic_title()
+    {
+        switch ($this->country) {
+            case 'MX':
+                $this->title = __('Pago con efectivo en tiendas', 'openpay_stores');
+                break;
+            case 'CO':
+                $this->title = __('Pago con efectivo', 'openpay_stores');
+                break;
+            case 'PE':
+                $this->title = __('Pago en agencias', 'openpay_stores');
+                break;
+            default:
+                $this->title = __('Pago seguro con efectivosssss', 'openpay_stores');
+                break;
+        }
+    }
+
     public function process_payment($order_id)
     {
         global $woocommerce;
         $gateways = $woocommerce->payment_gateways->payment_gateways();
-        $gateway = $gateways[ 'openpay_stores' ];
+        $gateway = $gateways['openpay_stores'];
         if ($gateway->enabled === 'yes') {
             $order = wc_get_order($order_id);
             //$this->openpay = OpenpayClient::getInstance($this->merchant_id, $this->private_key, $this->country, $this->is_sandbox);
@@ -232,14 +256,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         return true;
     }
 
-
-
-    public function openpay_stores_admin_enqueue()
-    {
-    }
-    function payment_scripts()
-    {
-    }
     public function process_admin_options()
     {
         // Obtenemos los datos enviados por el usuario.
@@ -408,44 +424,13 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
 
     public function payment_fields()
     {
-        if ($this->country == 'MX'){
-        echo '<div class="openpay-logos">';
-        echo '<img src="' . esc_url(plugins_url('assets/images/newcheckout/openpay-stores-icons.svg', __FILE__)) . '" alt="" />';
-        echo '</div>';
-        }
-        $this->images_dir = plugin_dir_url(__FILE__) . '/assets/images/';
-        //$this->fonts_dir = plugin_dir_url(__FILE__) . '/assets/Fonts';
+        // Definimos la ruta base de imágenes para que el template la use
+        $this->images_dir = plugin_dir_url(__FILE__) . 'assets/images/';
+
+        // Incluimos el template (checkout clásico)
         include_once('templates/payment.php');
     }
 
-    protected function processOpenpayCharge()
-    {
-    }
-    public function createOpenpayCharge()
-    {
-    }
-    public function getOpenpayCustomer()
-    {
-    }
-    public function createOpenpayCustomer()
-    {
-    }
-    private function formatAddress()
-    {
-    }
-    public function hasAddress()
-    {
-    }
-    public function createWebhook()
-    {
-    }
-
-    public function error()
-    {
-    }
-    public function errorWebhook()
-    {
-    }
     public function validateCurrency()
     {
         // Cargar las propiedades más recientes (por si cambiaron y no se han guardado)
@@ -459,7 +444,28 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         }
         return true;
     }
-    public function isNullOrEmptyString()
+    public function enqueue_classic_styles()
     {
+        // Solo actuamos en la página de checkout
+        if (!is_checkout()) {
+            return;
+        }
+
+        $post_content = get_post(get_the_ID())->post_content;
+        $has_checkout_block = has_block('woocommerce/checkout') || strpos($post_content, 'wp:woocommerce/checkout') !== false;
+
+        // Solo cargamos si es el checkout tradicional
+        if (!$has_checkout_block) {
+            wp_enqueue_style(
+                'openpay-classic-styles',
+                plugins_url('assets/css/openpay-store-classic-checkout.css', __FILE__),
+                array(),
+                '2.0.1'
+            );
+        } else {
+            // Si hay bloque, nos aseguramos de que el estilo de bloques se cargue aquí 
+            // si WooCommerce no lo hizo automáticamente.
+            wp_enqueue_style('openpay-stores-blocks-styles');
+        }
     }
 }
