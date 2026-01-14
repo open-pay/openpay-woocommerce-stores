@@ -6,7 +6,8 @@ libraries{
     s3
 }
 git_ssh_credentials_id = "github_openpay"
-// Variables a usar por ambiente, en este ejemplo se dejan como ignorados todos los ambientes, se deben de configurar acorde a lo que se tenga
+// Variables a usar por ambiente, en este ejemplo se dejan como ignorados todos los ambientes, 
+// se deben de configurar acorde a lo que se tenga
 application_environments{
     sandbox{
         ignore = true
