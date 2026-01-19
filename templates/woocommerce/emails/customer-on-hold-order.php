@@ -173,6 +173,37 @@ if ($openpay_reference) {
                                 </td>
                             </tr>
                             <?php endif; ?>
+                            <?php if ($country == 'PE') : ?>
+                            <tr>
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">
+                                        <span style="color: #333333; font-size: 14px; font-weight: bold;">
+                                            <?php echo esc_html__('Código de agencia o agente:', 'openpay-stores'); ?>
+                                        </span>
+                                </td>
+                                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee; text-align: left;">
+                                    <div>
+                                    <span style="color: #333333; font-size: 14px;">
+                                        <strong>BBVA:</strong> 11140
+                                    </span>
+                                    </div>
+                                    <div>
+                                    <span style="color: #333333; font-size: 14px;">
+                                        <strong>BCP:</strong> 15813
+                                    </span>
+                                    </div>
+                                    <div>
+                                    <span style="color: #333333; font-size: 14px;">
+                                        <strong>Interbank:</strong> 0791501
+                                    </span>
+                                    </div>
+                                    <div>
+                                    <span style="color: #333333; font-size: 14px;">
+                                        <strong>Kasnet:</strong> 220044
+                                    </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
                         </table>
 
                         <!-- Commission Note -->
@@ -228,6 +259,20 @@ if ($openpay_reference) {
                                 <tr>
                                     <td align="center" width="100%">
                                         <img src="https://img.openpay.mx/plugins/woocommerce/tiendas.png" alt="tiendas" style="display: block;">
+                                    </td>
+                                </tr>
+                            </table>
+                        <?php endif; ?>
+
+                         <?php if ($country == 'PE') : ?>
+                            <!-- Payment Locations -->
+                            <p style="color: #333333; font-size: 14px; margin-bottom: 15px;">
+                                <?php echo esc_html__('Recuerda que puedes realizar tu pago en los siguientes establecimientos:', 'openpay-stores'); ?>
+                            </p>
+                            <table role="presentation" width="100%" cellpadding="10" cellspacing="0" border="0" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td align="center" width="100%">
+                                        <img src="https://img.openpay.mx/plugins/woocommerce/establecimientos_pe.png" alt="tiendas" style="display: block;">
                                     </td>
                                 </tr>
                             </table>
