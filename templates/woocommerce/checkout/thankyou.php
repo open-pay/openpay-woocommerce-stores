@@ -21,6 +21,7 @@ $openpay_barcode_url = $order->get_meta('_openpay_barcode_url');
 $openpay_reference = $order->get_meta('_openpay_reference');
 $openpay_due_date = $order->get_meta('_due_date');
 $country= $order->get_meta('_country');
+$images_url = plugin_dir_url(__DIR__) . '../../assets/images/';
 
 // Formatear fecha límite
 $due_date_formatted = '';
@@ -99,6 +100,19 @@ if ($openpay_reference) {
             </div>
         <?php endif; ?>
 
+        <!-- Código de agencia o agente (Solo para Perú) -->
+        <?php if ($country == 'PE') : ?>
+            <div class="openpay-reference__detail-row">
+                <span class="openpay-reference__detail-label">Código de agencia o agente:</span>
+                <div style="text-align: left;">
+                    <div class="openpay-reference__detail-value">BBVA: 11140</div>
+                     <div class="openpay-reference__detail-value">BCP: 15813</div>
+                      <div class="openpay-reference__detail-value">Interbank: 0791501</div>
+                       <div class="openpay-reference__detail-value">KasNet: 220044</div>
+                </div>
+            </div>
+        <?php endif; ?>
+
     </div>
 
     <!-- Nota sobre comisión -->
@@ -162,6 +176,20 @@ if ($openpay_reference) {
         </div>
     </div>
     <?php endif; ?>
+
+    <?php if ($country == 'PE') : ?>
+    <!-- Establecimientos donde se puede pagar -->
+    <div class="openpay-reference__establishments">
+        <p class="openpay-reference__establishments-text">
+            Recuerda que puedes realizar tu pago en los siguientes establecimientos:
+        </p>
+
+        <div class="openpay-reference__logos">
+            <img src="<?= $images_url ?>establecimientos_pe.png" alt="7-Eleven" class="openpay-reference__logo_pe">
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Información de contacto -->
     <div class="openpay-reference__contact">
         <?php if ($country == 'MX') : ?>
@@ -469,6 +497,15 @@ if ($openpay_reference) {
     .openpay-reference__logo {
         height: 35px;
         width: auto;
+        object-fit: contain;
+    }
+
+    /**
+     * Logo individual de establecimiento para Perú
+     */
+    .openpay-reference__logo_pe {
+        width: auto;
+        max-width: 130%;
         object-fit: contain;
     }
 
