@@ -5,6 +5,8 @@ libraries{
     php
     s3
 }
+agent = "op_jenkins_mx_dev_slave_2023"
+init_agent = "op_jenkins_mx_dev_slave_2023"
 git_ssh_credentials_id = "github_openpay"
 // Variables a usar por ambiente, en este ejemplo se dejan como ignorados todos los ambientes, 
 // se deben de configurar acorde a lo que se tenga
