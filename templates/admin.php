@@ -12,12 +12,11 @@
     <?php _e('Openpay Stores', 'woothemes'); ?>
 </h3>
 
-<?php if(!$this->validateCurrency()): ?>
+<?php if (isset($currency_is_valid) && !$currency_is_valid): ?>
     <div class="inline error">
         <?php
-            $countryName = UtilsStores::getCountryName($this->country);
-            $message = UtilsStores::getMessageError($countryName, $this->currencies[0]);
-            echo $message;
+        // Usamos la variable que fue preparada en OpenpayStoresGateway: admin_options()
+        echo esc_html($error_message);
         ?>
     </div>
 <?php endif; ?>

@@ -1,103 +1,190 @@
 <?php
-/*
-  Title:	Openpay Payment extension for WooCommerce
-  Author:	Openpay
-  URL:		http://www.openpay.mx
-  License: GNU General Public License v3.0
-  License URI: http://www.gnu.org/licenses/gpl-3.0.html
+/**
+ * Estructura para el Checkout Clásico (Vista Tradicional)
  */
+
+$country = $this->country;
+$images_url = $this->images_dir . '/newcheckout/';
+
+$modal_stores = [
+	'MX' => [
+		'cols' => [
+			['Walmart', 'Walmart Express', 'Bodega Aurrerá', "Sam's Club", "Waldo's", 'Farmacias del Ahorro', 'Farmacias Guadalajara'],
+			['7 Eleven', 'Circle K', 'Extra', 'Kiosko', 'SYS Tienda', 'Otras']
+		],
+		'link' => 'https://www.paynet.com.mx/mapa-tiendas/index.html',
+		'link_text' => 'consulta la tienda más cercana'
+	],
+	'PE' => [
+		'cols' => [
+			['BBVA', 'Caja Arequipa', 'Interbank', 'Yape'],
+			['BCP', 'Caja Huancayo', 'Kasnet']
+		],
+		'link' => '#',
+		'link_text' => 'consulta tu punto de pago más cercano'
+	]
+];
 ?>
-<style>
-    .step img{
-        width: 40%;
-        margin-bottom: 0.5em;
-        margin-top: 1.2em;
-        margin-right:initial;
-    }
 
-    .step{
-        text-align: center;
-    }
+<div id="openpay-classic-container" class="openpay-store-checkout-container" style="max-width: 100%; overflow: hidden;">
+	<?php if ($country === 'MX'): ?>
+		<div class="openpay-logos" style="max-width: 100%; text-align: center;">
+			<img src="<?= $images_url ?>openpay-stores-icons.svg" alt="Metodos de pago Openpay"
+				style="max-width: 100%; height: auto;">
+		</div>
+	<?php endif; ?>
 
-    .openpay_logo{
-        float: inherit !important;
-        margin-left: auto;
-        margin-right: auto;
-    }
+	<?php if ($country === 'PE'): ?>
+		<div class="openpay-tabs">
+			<button type="button" class="openpay-tab-button active" data-tab="webapp">Pago en web app</button>
+			<button type="button" class="openpay-tab-button" data-tab="agencias">Pago en agencias</button>
+		</div>
+		<input type="hidden" name="openpay_pe_type" id="openpay_pe_type" value="webapp">
+	<?php endif; ?>
 
-    .payment_method_openpay_stores{
-        background-color: #F5F7F9 !important;
-    }
+	<div class="openpay-store-checkout-style">
+		<div class="step-guide">
+			<div class="step-guide__header">
+				<div class="step-guide__logo-left">
+					<img src="<?= $images_url ?>icon-lock.svg" alt="Lock" style="width: 15px; height: auto;">
+					<img src="<?= $images_url ?>logo-openpay-small.svg" alt="Openpay"
+						style="height: 20px; width: auto;">
+					<span class="step-guide__security-text">by BBVA asegura y protege tu pago.</span>
+				</div>
 
-    .step>p{
-        text-align: justify;
-        color: #0063A8 ;
-    }
+				<div class="step-guide__logo-right">
+					<?php if ($country === 'MX'): ?>
+						<img src="<?= $images_url ?>paynet-logo.png" alt="Paynet" style="max-width: 100px; height: auto;">
+					<?php elseif ($country === 'CO'): ?>
+						<img src="<?= $images_url ?>efecty-logo.png" alt="Efecty" style="max-width: 100px; height: auto;">
+					<?php endif; ?>
+				</div>
+			</div>
 
-    .steps_title{
-        font-weight: 400;
-        color: #0063A8 ;
-        text-align: center;
-    }
+			<div class="step-guide__step step-guide__vertical-line">
+				<div class="step-guide__icon">
+					<img src="<?= $images_url ?>logo-step-1.svg" alt="Paso 1" style="max-width: 100%; height: auto;">
+				</div>
+				<div class="step-guide__content">
+					<p class="step-guide__title">Confirma y reserva la compra</p>
+					<p class="step-guide__description">Selecciona “Realizar el pedido”, tu compra quedará reservada
+						hasta que completes el pago.</p>
+				</div>
+			</div>
 
-    @media screen and (max-width: 768px) and (min-width: 375px){
-        .step img{
-            width: 25%;
-            margin-right: 1em;
-            margin-bottom: initial;
-            margin-top: initial;
-        }
+			<div class="step-guide__step step-guide__vertical-line">
+				<div class="step-guide__icon">
+					<img src="<?= $images_url ?>logo-step-2.svg" alt="Paso 2" style="max-width: 100%; height: auto;">
+				</div>
+				<div class="step-guide__content">
+					<p class="step-guide__title">Guarda tu referencia de pago</p>
+					<p class="step-guide__description">Descarga y guarda la referencia de pago, también la recibirás por
+						correo.</p>
+				</div>
+			</div>
 
-        .step{
-            display:flex;
-            align-items: center;
-            margin-bottom: 1.3em;
-        }
-    }
-</style>
-<div class="row">
-    <div class="col-md-12">
-        <?php if($this->country == 'MX'): ?>
-            <img src="https://img.openpay.mx/plugins/wc_logos_paynet.png" style="width: 100%; max-height: inherit;">
-            <small><a style="color: #11BFF8;" href="https://www.openpay.mx/efectivo" target="_blank">Consulta las tiendas afiliadas</a></small>
-        <?php elseif($this->country == 'CO'): ?>   
-            <div class="store-logos">
-                <div class="store-logos__puntored">
-                    <img src="<?php echo $this->images_dir ?>puntored_via_baloto_logo.png">
-                </div>
-            </div>
-            <small class="store-link"><a href="https://www.openpay.co/efectivo" target="_blank">Consulta los puntos de recaudo</a></small>
-        <?php elseif($this->country == 'PE'): ?>
-            <div class="store-logos">
-                <div class="store-logos__puntored">
-                    <img src="<?php echo $this->images_dir ?>stores-pe.png">
-                </div>
-            </div>
-            <small><a href="https://www.openpay.pe/efectivo" target="_blank">Consulta las agencias afiliadas</a></small>
-        <?php endif; ?>
-    </div>
-</div>
-<div class="row" id="steps-container">
-    <div class="col-md-12" style="margin-top: 20px; margin-bottom: 10px;">
-        <h4 class="steps_title">Pasos para tu pago por tienda</h4>
-    </div>
-    <div class="col-md-4 step">
-        <img alt="Paso 1" src="https://img.openpay.mx/plugins/file.svg" style="display: inline; height: auto; float: none; max-height: none;" />
-        <br/>
-        <p>Haz clic en el botón "Realizar pedido", así tu compra quedará en espera de que realices tu pago.</p>
-    </div>
-    <div class="col-md-4 step">
-        <img alt="Paso 2" src="https://img.openpay.mx/plugins/printer.svg" style="display: inline; height: auto; float: none; max-height: none;">
-        <br/>
-        <p>Imprime tu recibo, llévalo a tu tienda de conveniencia más cercana y realiza el pago.</p>
-    </div>
-    <div class="col-md-4 step">
-        <img alt="Paso 3" src="https://img.openpay.mx/plugins/mail.svg" style="display: inline; height: auto; float: none; max-height: none;">
-        <br/>
-        <p>Inmediatamente después de recibir tu pago te enviaremos un correo electrónico con la confirmación de pago.</p>
-    </div>
-</div>
-<div style="height: 1px; clear: both; border-bottom: 1px solid #CCC; margin: 10px 0 10px 0;"></div>
-<div style="text-align: center" class="store-logos__openpay">
-    <img class="openpay_logo" alt="" width="80px" src="https://img.openpay.mx/plugins/openpay_logo.svg">
-</div>
+			<div class="step-guide__step">
+				<div class="step-guide__icon">
+					<img src="<?= $images_url ?>logo-step-3.svg" alt="Paso 3" style="max-width: 100%; height: auto;">
+				</div>
+				<div class="step-guide__content">
+					<p class="step-guide__title">Completa el pago</p>
+					<p id="step-3-description" class="step-guide__description">
+						<?php if ($country === 'PE'): ?>
+							Ingresa a tu banca móvil o web. Selecciona "Pago de servicio" y elige KASHIO PERÚ. Luego,
+							ingresa el número de referencia, lo encontrarás en el PDF enviado a tu correo.
+						<?php elseif ($country === 'CO'): ?>
+							Ve a un punto Efecty y dile a la persona en caja que harás un pago en efectivo, proporciona el
+							núm. de referencia.
+						<?php else: ?>
+							Ve a una de las tiendas aliadas y dile a la persona en caja que harás un pago en efectivo,
+							proporciona el código de barras o núm. de referencia.
+						<?php endif; ?>
+					</p>
+				</div>
+			</div>
+
+			<?php if (in_array($country, ['MX', 'PE'])): ?>
+				<div class="step-guide__footer">
+					<a href="#" id="openpay-modal-trigger" class="step-guide__link">¿En dónde puedo pagar?</a>
+				</div>
+			<?php endif; ?>
+		</div>
+	</div>
+</div> <?php if (isset($modal_stores[$country])): ?>
+	<div id="stepGuideModal" class="step-guide__modal" style="display:none;">
+		<div class="step-guide__modal-overlay"></div>
+		<div class="step-guide__modal-content">
+			<button type="button" class="step-guide__modal-close">&times;</button>
+			<div class="step-guide__modal-header">
+				<img src="<?= $images_url ?>icon-info.svg" alt="Info" class="step-guide__modal-icon"
+					style="width: 24px; height: auto;">
+				<p class="step-guide__modal-title">¿En dónde puedo pagar?</p>
+			</div>
+			<p class="step-guide__modal-text">
+				Acude a cualquiera de las siguientes tiendas aliadas o
+				<a href="<?= $modal_stores[$country]['link'] ?>" target="_blank" class="step-guide__modal-link">
+					<?= $modal_stores[$country]['link_text'] ?>
+				</a>
+			</p>
+			<div class="step-guide__modal-columns">
+				<?php foreach ($modal_stores[$country]['cols'] as $col): ?>
+					<ul class="store-list">
+						<?php foreach ($col as $store): ?>
+							<li><?= $store ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endforeach; ?>
+			</div>
+		</div>
+	</div>
+<?php endif; ?>
+
+<script>
+	(function ($) {
+		'use strict';
+		var initOpenpayClassic = function () {
+			var $container = $('#openpay-classic-container');
+			if (!$container.length) return;
+
+			var $tabs = $('.openpay-tab-button');
+			var $step3Desc = $('#step-3-description');
+			var $peInput = $('#openpay_pe_type');
+
+			$tabs.off('click').on('click', function (e) {
+				e.preventDefault();
+				$tabs.removeClass('active');
+				$(this).addClass('active');
+				var type = $(this).data('tab');
+				if ($peInput.length) $peInput.val(type);
+
+				if (type === 'webapp') {
+					$step3Desc.text('Ingresa a tu banca móvil o web. Selecciona "Pago de servicio" y elige KASHIO PERÚ. Luego, ingresa el número de referencia, lo encontrarás en el PDF enviado a tu correo.');
+				} else {
+					$step3Desc.text('Acude a una agencia autorizada e indica al cajero que harás un pago de servicio KASHIO PERÚ, proporciona el numero de referencia. Antes de pagar, verifica que los datos coincidan.');
+				}
+			});
+
+			var $modal = $('#stepGuideModal');
+			var $openBtn = $('#openpay-modal-trigger');
+			var $closeBtn = $('.step-guide__modal-close');
+			var $overlay = $('.step-guide__modal-overlay');
+
+			if ($openBtn.length) {
+				$openBtn.off('click').on('click', function (e) {
+					e.preventDefault();
+					$modal.fadeIn(200).addClass('step-guide__modal--active');
+				});
+			}
+
+			if ($modal.length) {
+				$closeBtn.add($overlay).off('click').on('click', function () {
+					$modal.fadeOut(200).removeClass('step-guide__modal--active');
+				});
+			}
+		};
+
+		$(document).ready(initOpenpayClassic);
+		$(document.body).on('updated_checkout', initOpenpayClassic);
+	})(jQuery);
+</script>

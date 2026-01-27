@@ -1,0 +1,35 @@
+# ## Dependencias de Composer ##
+# Esta es la regla más importante.
+/vendor/
+
+# ## Archivos generados por las pruebas ##
+/coverage/
+/.phpunit.cache/
+
+# ## Archivos de ci/cd ##
+/.circleci/
+
+# ## Archivos de Sistema Operativo ##
+.DS_Store
+Thumbs.db
+
+# ## Archivos de Configuración de Editores e IDEs ##
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# ## Archivos de Logs y Bases de Datos ##
+*.log
+*.sql
+*.sql.gz
+
+# ## Archivos comprimidos de builds ##
+*.zip
+*.tar.gz
+
+# ## Archivos de configuración local de WordPress ##
+# (Si alguna vez los usas)
+wp-config-local.php
+
+/node_modules/
