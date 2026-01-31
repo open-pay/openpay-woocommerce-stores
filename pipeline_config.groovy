@@ -20,7 +20,7 @@ application_environments{
     dev{
         ignore = false
         bucket = 'openpay-development-wars'
-        source = 'openpay_stores.zip'
+        source = '/home/ec2-user/html/wp-content/plugins/openpay-woocommerce-stores/openpay_stores.zip'
         destination = 'php/dev/openpay-woocommerce-stores-${projectVersion}-${branchName}-${buildNumber}.zip'
     }
 }
