@@ -5,8 +5,11 @@ libraries{
     php
     s3
 }
-git_ssh_credentials_id = "github_openpay"
-// Variables a usar por ambiente, en este ejemplo se dejan como ignorados todos los ambientes, se deben de configurar acorde a lo que se tenga
+agent = "op_jenkins_mx_dev_slave_2023_php"
+init_agent = "op_jenkins_mx_dev_slave_2023_php"
+git_credentials_id = "jenkins-github-latam-ct"
+// Variables a usar por ambiente, en este ejemplo se dejan como ignorados todos los ambientes, 
+// se deben de configurar acorde a lo que se tenga
 application_environments{
     sandbox{
         ignore = true
@@ -17,7 +20,7 @@ application_environments{
     dev{
         ignore = false
         bucket = 'openpay-development-wars'
-        source = 'openpay-woocommerce-stores.zip'
+        source = '/home/ec2-user/html/wp-content/plugins/openpay-woocommerce-stores/openpay_stores.zip'
         destination = 'php/dev/openpay-woocommerce-stores-${projectVersion}-${branchName}-${buildNumber}.zip'
     }
 }
