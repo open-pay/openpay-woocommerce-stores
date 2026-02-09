@@ -19,7 +19,7 @@ final class OpenpayStoresGateway_Blocks_Support extends AbstractPaymentMethodTyp
     {
         $this->settings = get_option("woocommerce_{$this->name}_settings", array());
         // Esto aparecerá en el archivo wp-content/debug.log
-        error_log('DEBUG Openpay: Ajustes cargados -> ' . print_r($this->settings, true));
+        //error_log('DEBUG Openpay: Ajustes cargados -> ' . print_r($this->settings, true));
         add_action('woocommerce_rest_checkout_process_payment_with_context', function ($context, $result) {
             $logger = wc_get_logger();
             if ($context->payment_method === 'openpay_stores') {
