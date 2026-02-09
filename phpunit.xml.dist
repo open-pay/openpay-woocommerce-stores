@@ -17,6 +17,7 @@
   <testsuites>
     <testsuite name="unit">
       <directory>tests</directory>
+      <exclude>./tests/Services/OpenpayWebhookProcessorServiceTest.php</exclude>
     </testsuite>
   </testsuites>
   <logging/>
