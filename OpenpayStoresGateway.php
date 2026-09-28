@@ -19,7 +19,7 @@ use OpenpayStores\Services\OpenpayCustomerService;
   License: GNU General Public License v3.0
   License URI: http://www.gnu.org/licenses/gpl-3.0.html
     WC requires at least: 3.0
-    WC tested up to: 8.0.*
+        WC tested up to: 10.2.*
  */
 class OpenpayStoresGateway extends WC_Payment_Gateway
 {
@@ -52,12 +52,6 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $this->init_settings();
         $this->logger = wc_get_logger();
         $this->country = $this->get_option('country');
-
-        // Disable Plugin if Currency is not supported by Country.
-        $allowedCurrencies = OpenpayUtils::getCurrencies($this->country);
-        if (!in_array(get_woocommerce_currency(), $allowedCurrencies)) {
-            $this->update_option('enabled', '0');
-        }
 
         // Método para establecer las propiedades según los ajustes actuales
         $this->setup_properties();
@@ -140,7 +134,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'default' => __('', 'woothemes')
             ),
             'test_private_key' => array(
-                'type' => 'text',
+                'type' => 'password',
                 'title' => __('Llave secreta de pruebas', 'woothemes'),
                 'description' => __('Obten tus llaves de prueba de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
@@ -152,7 +146,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'default' => __('', 'woothemes')
             ),
             'live_private_key' => array(
-                'type' => 'text',
+                'type' => 'password',
                 'title' => __('Llave secreta de producción', 'woothemes'),
                 'description' => __('Obten tus llaves de producción de tu cuenta de Openpay ("sk_").', 'woothemes'),
                 'default' => __('', 'woothemes')
@@ -265,7 +259,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         $allowed_currencies_for_country = OpenpayUtils::getCurrencies($selected_country);
 
         $logger = wc_get_logger();
-        $logger->info('DATOS ENVIADOS DESDE GATEWAY: ' . json_encode($post_data));
+        $logger->info('Datos enviados desde gateway: ' . json_encode(OpenpayPaymentSettingsValidation::sanitizeSettingsForLog($post_data)));
 
         // Creamos una instancia de nuestro validador.
         $validator = new OpenpayPaymentSettingsValidation($logger, $this->id);
@@ -431,6 +425,15 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
         include_once('templates/payment.php');
     }
 
+    public function is_available()
+    {
+        if (!parent::is_available()) {
+            return false;
+        }
+
+        return $this->validateCurrency();
+    }
+
     public function validateCurrency()
     {
         // Cargar las propiedades más recientes (por si cambiaron y no se han guardado)
@@ -460,7 +463,7 @@ class OpenpayStoresGateway extends WC_Payment_Gateway
                 'openpay-classic-styles',
                 plugins_url('assets/css/openpay-store-classic-checkout.css', __FILE__),
                 array(),
-                '2.0.1'
+                OPENPAY_STORES_VERSION
             );
         } else {
             // Si hay bloque, nos aseguramos de que el estilo de bloques se cargue aquí 

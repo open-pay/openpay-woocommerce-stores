@@ -30,7 +30,7 @@ jQuery(document).ready(function () {
     }
 
     function is_sandbox(){
-        jQuery(".form-table input[type=text]").each(function(e){
+        jQuery(".form-table input[type=text], .form-table input[type=password]").each(function(e){
             var sandbox = jQuery("#woocommerce_openpay_stores_sandbox").is(':checked');
             var inputField = jQuery(this).attr("name").search("test");
             if(sandbox && inputField != -1) {

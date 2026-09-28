@@ -32,7 +32,7 @@ class OpenpayPaymentSettingsValidation
      */
     public function validateOpenpayCredentials(array $settings)
     {
-        $this->logger->info('Datos recibidos para validación: ' . json_encode($settings));
+        $this->logger->info('Datos recibidos para validacion: ' . json_encode(self::sanitizeSettingsForLog($settings)));
 
         $is_sandbox = !empty($settings['woocommerce_' . $this->gateway_id . '_sandbox']);
 
@@ -66,6 +66,64 @@ class OpenpayPaymentSettingsValidation
             $this->logger->error('Fallo en la validación de API: ' . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Genera una copia segura para logs ocultando valores sensibles.
+     */
+    public static function sanitizeSettingsForLog(array $settings): array
+    {
+        $sanitized = array();
+
+        foreach ($settings as $key => $value) {
+            if (self::isSensitiveSettingKey((string) $key)) {
+                $sanitized[$key] = self::maskValue($value);
+                continue;
+            }
+
+            if (is_array($value)) {
+                $sanitized[$key] = self::sanitizeSettingsForLog($value);
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
+    }
+
+    private static function isSensitiveSettingKey(string $key): bool
+    {
+        $normalized_key = strtolower($key);
+
+        return strpos($normalized_key, 'private_key') !== false
+            || strpos($normalized_key, 'secret') !== false
+            || strpos($normalized_key, 'password') !== false
+            || strpos($normalized_key, 'token') !== false
+            || strpos($normalized_key, 'nonce') !== false;
+    }
+
+    private static function maskValue($value): string
+    {
+        if (is_array($value)) {
+            return '[masked-array]';
+        }
+
+        $string_value = (string) $value;
+        $value_length = strlen($string_value);
+
+        if ($value_length === 0) {
+            return '';
+        }
+
+        if ($value_length <= 6) {
+            return str_repeat('*', $value_length);
+        }
+
+        $visible_prefix = substr($string_value, 0, 4);
+        $visible_suffix = substr($string_value, -2);
+
+        return $visible_prefix . str_repeat('*', max(2, $value_length - 6)) . $visible_suffix;
     }
 
     /**

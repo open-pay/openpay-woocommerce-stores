@@ -8,7 +8,7 @@ use OpenpayStores\Services\OpenpayWebhookProcessorService;
  * Plugin Name: Openpay Stores Plugin
  * Plugin URI: http://www.openpay.mx/docs/plugins/woocommerce.html
  * Description: Provides a cash payment method with Openpay for WooCommerce.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Openpay
  * Author URI: http://www.openpay.mx
  * Developer: Openpay
@@ -26,6 +26,11 @@ use OpenpayStores\Services\OpenpayWebhookProcessorService;
 // Evita el acceso directo al archivo.
 if (!defined('ABSPATH')) {
     exit;
+}
+
+// Punto único de versión: usado para el cache de todos los assets del plugin
+if (!defined('OPENPAY_STORES_VERSION')) {
+    define('OPENPAY_STORES_VERSION', '2.0.1');
 }
 
 // ***** INCLUIR EL AUTOLOADER DE COMPOSER *****
@@ -88,7 +93,7 @@ function OpenpayStoresGateway_add_gateway($gateways)
  */
 function OpenpayStoresGateway_admin_enqueue($hook)
 {
-    wp_enqueue_script('openpay_stores_admin_form', plugins_url('assets/js/admin.js', __FILE__), array('jquery'), '1.0.2', true);
+    wp_enqueue_script('openpay_stores_admin_form', plugins_url('assets/js/admin.js', __FILE__), array('jquery'), OPENPAY_STORES_VERSION, true);
 }
 
 /**
@@ -127,7 +132,7 @@ function payment_scripts()
     if (!is_checkout() || (function_exists('has_block') && has_block('woocommerce/checkout'))) {
         return;
     }
-    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array('jquery'), '', true);
+    wp_enqueue_script('openpay_new_checkout', plugins_url('assets/js/openpay_new_checkout.js', __FILE__), array('jquery'), OPENPAY_STORES_VERSION, true);
 }
 
 /**
