@@ -2,9 +2,9 @@
 Contributors: openpay
 Tags: payments, payment gateway, openpay, woocommerce
 Requires at least: 4.8
-Tested up to: 6.4.3
+Tested up to: 7.0.4
 Requires PHP: 5.6
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -16,8 +16,10 @@ For more information about this module go to:
 http://www.openpay.mx/docs/plugins/woocommerce.html
 
 == Changelog ==
+= 2.0.2 =
+* Actualizacion general del plugin Stores (PR #42): ajustes de mantenimiento y control de version
 = 2.0.1 =
-* Actualizacion general del plugin Stores (PR #42): ajustes de mantenimiento y control de version.
+* Soporte para bloques Gutemberg Perú
 = 2.0.0 =
 * Actualización soporte para bloques Gutemberg 
 = 1.12.3 =

@@ -8,7 +8,7 @@ use OpenpayStores\Services\OpenpayWebhookProcessorService;
  * Plugin Name: Openpay Stores Plugin
  * Plugin URI: http://www.openpay.mx/docs/plugins/woocommerce.html
  * Description: Provides a cash payment method with Openpay for WooCommerce.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: Openpay
  * Author URI: http://www.openpay.mx
  * Developer: Openpay
@@ -30,7 +30,7 @@ if (!defined('ABSPATH')) {
 
 // Punto único de versión: usado para el cache de todos los assets del plugin
 if (!defined('OPENPAY_STORES_VERSION')) {
-    define('OPENPAY_STORES_VERSION', '2.0.1');
+    define('OPENPAY_STORES_VERSION', '2.0.2');
 }
 
 // ***** INCLUIR EL AUTOLOADER DE COMPOSER *****
